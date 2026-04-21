@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { db } from '../../db/client';
-import { habits, targets } from '../../db/schema';
+import { habitLogs, habits, targets } from '../../db/schema';
 import { createTarget } from '../../db/targets';
 
 // Type for habits shown in the target form
@@ -25,6 +25,9 @@ type TargetItem = {
   habitName: string;
   period: 'weekly' | 'monthly';
   targetValue: number;
+  currentValue: number;
+  remainingValue: number;
+  status: 'On Track' | 'Met' | 'Exceeded';
 };
 
 export default function TargetsScreen() {
@@ -42,45 +45,62 @@ export default function TargetsScreen() {
     }, [])
   );
 
-  const loadData = async () => {
-    const savedHabits = await db.select().from(habits);
-    const savedTargets = await db.select().from(targets);
+ const loadData = async () => {
+  const savedHabits = await db.select().from(habits);
+  const savedTargets = await db.select().from(targets);
+  const savedLogs = await db.select().from(habitLogs);
 
-    const formattedHabits: HabitItem[] = savedHabits.map((habit) => ({
-      id: habit.id,
-      name: habit.name,
-    }));
+  const formattedHabits: HabitItem[] = savedHabits.map((habit) => ({
+    id: habit.id,
+    name: habit.name,
+  }));
 
-    setHabitList(formattedHabits);
+  setHabitList(formattedHabits);
 
-    if (formattedHabits.length > 0) {
-      const habitStillExists = formattedHabits.some(
-        (habit) => habit.id === selectedHabitId
-      );
+  if (formattedHabits.length > 0) {
+    const habitStillExists = formattedHabits.some(
+      (habit) => habit.id === selectedHabitId
+    );
 
-      if (!habitStillExists) {
-        setSelectedHabitId(formattedHabits[0].id);
-      }
-    } else {
-      setSelectedHabitId(null);
+    if (!habitStillExists) {
+      setSelectedHabitId(formattedHabits[0].id);
     }
+  } else {
+    setSelectedHabitId(null);
+  }
 
-    const formattedTargets: TargetItem[] = savedTargets
-      .map((target) => {
-        const matchedHabit = savedHabits.find((habit) => habit.id === target.habitId);
+  const formattedTargets: TargetItem[] = savedTargets
+    .map((target) => {
+      const matchedHabit = savedHabits.find((habit) => habit.id === target.habitId);
 
-        return {
-          id: target.id,
-          habitId: target.habitId,
-          habitName: matchedHabit ? matchedHabit.name : 'Unknown Habit',
-          period: target.period as 'weekly' | 'monthly',
-          targetValue: target.targetValue,
-        };
-      })
-      .reverse();
+      const relatedLogs = savedLogs.filter((log) => log.habitId === target.habitId);
 
-    setTargetList(formattedTargets);
-  };
+      const currentValue = relatedLogs.reduce((sum, log) => sum + log.value, 0);
+      const remainingValue = Math.max(target.targetValue - currentValue, 0);
+
+      let status: 'On Track' | 'Met' | 'Exceeded' = 'On Track';
+
+      if (currentValue === target.targetValue) {
+        status = 'Met';
+      } else if (currentValue > target.targetValue) {
+        status = 'Exceeded';
+      }
+
+      return {
+        id: target.id,
+        habitId: target.habitId,
+        habitName: matchedHabit ? matchedHabit.name : 'Unknown Habit',
+        period: target.period as 'weekly' | 'monthly',
+        targetValue: target.targetValue,
+        currentValue,
+        remainingValue,
+        status,
+      };
+    })
+    .reverse();
+
+  setTargetList(formattedTargets);
+};
 
   // Adds a new target using the helper function in db/targets.ts
   // This keeps the database insert logic outside the screen file
@@ -174,6 +194,9 @@ export default function TargetsScreen() {
             <Text style={styles.cardTitle}>{item.habitName}</Text>
             <Text style={styles.cardText}>Period: {item.period}</Text>
             <Text style={styles.cardText}>Target: {item.targetValue}</Text>
+            <Text style={styles.cardText}>Current Progress: {item.currentValue}</Text>
+            <Text style={styles.cardText}>Remaining: {item.remainingValue}</Text>
+            <Text style={styles.cardText}>Status: {item.status}</Text>
           </View>
         )}
       />
