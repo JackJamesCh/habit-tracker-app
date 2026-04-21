@@ -34,4 +34,8 @@ export const targets = sqliteTable('targets', {
   habitId: integer('habit_id').notNull(),
   period: text('period').notNull(), // weekly or monthly
   targetValue: integer('target_value').notNull(),
+  isActive: integer('is_active', { mode: 'boolean' })
+    .notNull()
+    .default(true),
+  createdAt: text('created_at').notNull(),
 });

@@ -37,7 +37,9 @@ sqlite.execSync(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     habit_id INTEGER NOT NULL,
     period TEXT NOT NULL,
-    target_value INTEGER NOT NULL
+    target_value INTEGER NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL
   );
 `);
 
