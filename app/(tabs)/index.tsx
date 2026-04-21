@@ -1,54 +1,96 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  FlatList,
-  StyleSheet,
+  View,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  FlatList,
+  StyleSheet,
 } from 'react-native';
+import { db } from '../../db/client';
+import { categories, habits } from '../../db/schema';
+import { eq } from 'drizzle-orm';
 
-// Simple type to represent one habit in the app
-type Habit = {
-  id: string;
+// This type is used for the habits shown on screen
+type HabitItem = {
+  id: number;
   name: string;
-  category: string;
+  categoryId: number;
+  categoryName: string;
   type: 'completed' | 'count-based';
 };
 
+// This type is used for category buttons
+type CategoryItem = {
+  id: number;
+  name: string;
+  color: string;
+};
+
 export default function HabitsScreen() {
-  // State is used for the form inputs and the habit list
-  // Later on, this data will come from SQLite instead of useState
+  // State stores form input and data loaded from SQLite
+  // The app now reads and writes habits from the real database
   const [habitName, setHabitName] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Fitness');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [habitType, setHabitType] = useState<'completed' | 'count-based'>('completed');
-  const [habits, setHabits] = useState<Habit[]>([]);
+  const [habitList, setHabitList] = useState<HabitItem[]>([]);
+  const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
 
-  // Hardcoded categories for now
-  const categories = ['Fitness', 'Learning', 'Health'];
+  // Loads categories and habits when the screen opens
+  // This keeps the UI in sync with the data saved in SQLite
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  // Adds a new habit to the top of the list
-  // It stops empty habit names from being added
-  const addHabit = () => {
-    if (!habitName.trim()) return;
+  const loadData = async () => {
+    const savedCategories = await db.select().from(categories);
+    const savedHabits = await db.select().from(habits);
 
-    const newHabit: Habit = {
-      id: Date.now().toString(),
-      name: habitName.trim(),
-      category: selectedCategory,
-      type: habitType,
-    };
+    setCategoryList(savedCategories);
 
-    setHabits((prevHabits) => [newHabit, ...prevHabits]);
-    setHabitName('');
-    setSelectedCategory('Fitness');
-    setHabitType('completed');
+    // Set the first category as default once categories are loaded
+    if (savedCategories.length > 0 && selectedCategoryId === null) {
+      setSelectedCategoryId(savedCategories[0].id);
+    }
+
+    const habitsWithCategoryNames: HabitItem[] = savedHabits.map((habit) => {
+      const matchedCategory = savedCategories.find(
+        (category) => category.id === habit.categoryId
+      );
+
+      return {
+        id: habit.id,
+        name: habit.name,
+        categoryId: habit.categoryId,
+        categoryName: matchedCategory ? matchedCategory.name : 'Unknown',
+        type: habit.type as 'completed' | 'count-based',
+      };
+    });
+
+    setHabitList(habitsWithCategoryNames);
   };
 
-  // Removes a habit by filtering it out of the array
-  // This is a simple way to handle delete before using a database
-  const deleteHabit = (habitId: string) => {
-    setHabits((prevHabits) => prevHabits.filter((habit) => habit.id !== habitId));
+  // Inserts a new habit into the database and reloads the list
+  // It stops empty names or missing categories from being saved
+  const addHabit = async () => {
+    if (!habitName.trim() || selectedCategoryId === null) return;
+
+    await db.insert(habits).values({
+      name: habitName.trim(),
+      categoryId: selectedCategoryId,
+      type: habitType,
+    });
+
+    setHabitName('');
+    setHabitType('completed');
+    await loadData();
+  };
+
+  // Deletes one habit from the database using its id
+  // After delete, the screen reloads the updated habit list
+  const deleteHabit = async (habitId: number) => {
+    await db.delete(habits).where(eq(habits.id, habitId));
+    await loadData();
   };
 
   return (
@@ -64,21 +106,23 @@ export default function HabitsScreen() {
 
       <Text style={styles.label}>Category</Text>
       <View style={styles.row}>
-        {categories.map((category) => (
+        {categoryList.map((category) => (
           <TouchableOpacity
-            key={category}
+            key={category.id}
             style={[
               styles.optionButton,
-              selectedCategory === category && styles.selectedButton,
+              selectedCategoryId === category.id && styles.selectedButton,
             ]}
-            onPress={() => setSelectedCategory(category)}
+            onPress={() => setSelectedCategoryId(category.id)}
           >
             <Text
               style={
-                selectedCategory === category ? styles.selectedText : styles.optionText
+                selectedCategoryId === category.id
+                  ? styles.selectedText
+                  : styles.optionText
               }
             >
-              {category}
+              {category.name}
             </Text>
           </TouchableOpacity>
         ))}
@@ -108,7 +152,9 @@ export default function HabitsScreen() {
           onPress={() => setHabitType('count-based')}
         >
           <Text
-            style={habitType === 'count-based' ? styles.selectedText : styles.optionText}
+            style={
+              habitType === 'count-based' ? styles.selectedText : styles.optionText
+            }
           >
             Count-based
           </Text>
@@ -122,13 +168,13 @@ export default function HabitsScreen() {
       <Text style={styles.listTitle}>Your Habits</Text>
 
       <FlatList
-        data={habits}
-        keyExtractor={(item) => item.id}
+        data={habitList}
+        keyExtractor={(item) => item.id.toString()}
         ListEmptyComponent={<Text style={styles.emptyText}>No habits yet</Text>}
         renderItem={({ item }) => (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{item.name}</Text>
-            <Text style={styles.cardText}>Category: {item.category}</Text>
+            <Text style={styles.cardText}>Category: {item.categoryName}</Text>
             <Text style={styles.cardText}>Type: {item.type}</Text>
 
             <TouchableOpacity
@@ -144,7 +190,7 @@ export default function HabitsScreen() {
   );
 }
 
-// Basic styles for the main layout and cards
+// Basic screen styling for layout and spacing
 const styles = StyleSheet.create({
   container: {
     flex: 1,

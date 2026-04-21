@@ -1,112 +1,257 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { db } from '../../db/client';
+import { habitLogs, habits } from '../../db/schema';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+// Type for habits shown as selectable buttons
+type HabitItem = {
+  id: number;
+  name: string;
+  type: 'completed' | 'count-based';
+};
 
-export default function TabTwoScreen() {
+// Type for logs displayed on screen
+type LogItem = {
+  id: number;
+  habitId: number;
+  habitName: string;
+  date: string;
+  value: number;
+  notes: string | null;
+};
+
+export default function LogsScreen() {
+  // State stores habits from the database, form input, and saved log entries
+  // This screen now uses SQLite instead of temporary sample data
+  const [habitList, setHabitList] = useState<HabitItem[]>([]);
+  const [selectedHabitId, setSelectedHabitId] = useState<number | null>(null);
+  const [date, setDate] = useState('');
+  const [value, setValue] = useState('');
+  const [notes, setNotes] = useState('');
+  const [logList, setLogList] = useState<LogItem[]>([]);
+
+ // Reload data every time the user opens this tab
+ // This makes sure newly added habits and logs appear straight away
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
+  const loadData = async () => {
+    const savedHabits = await db.select().from(habits);
+    const savedLogs = await db.select().from(habitLogs);
+
+    const formattedHabits: HabitItem[] = savedHabits.map((habit) => ({
+      id: habit.id,
+      name: habit.name,
+      type: habit.type as 'completed' | 'count-based',
+    }));
+
+    setHabitList(formattedHabits);
+
+    if (formattedHabits.length > 0 && selectedHabitId === null) {
+      setSelectedHabitId(formattedHabits[0].id);
+    }
+
+    const formattedLogs: LogItem[] = savedLogs
+      .map((log) => {
+        const matchedHabit = savedHabits.find((habit) => habit.id === log.habitId);
+
+        return {
+          id: log.id,
+          habitId: log.habitId,
+          habitName: matchedHabit ? matchedHabit.name : 'Unknown Habit',
+          date: log.date,
+          value: log.value,
+          notes: log.notes,
+        };
+      })
+      .reverse();
+
+    setLogList(formattedLogs);
+  };
+
+  // Adds a new habit log into the database and reloads the list
+  // It checks that a habit, date, and number value have been entered first
+  const addLog = async () => {
+    if (!selectedHabitId || !date.trim() || !value.trim()) return;
+
+    const numericValue = Number(value);
+
+    if (isNaN(numericValue)) return;
+
+    await db.insert(habitLogs).values({
+      habitId: selectedHabitId,
+      date: date.trim(),
+      value: numericValue,
+      notes: notes.trim() ? notes.trim() : null,
+    });
+
+    setDate('');
+    setValue('');
+    setNotes('');
+    await loadData();
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      <Text style={styles.title}>Habit Logs</Text>
+
+      <Text style={styles.label}>Select Habit</Text>
+      <View style={styles.row}>
+        {habitList.map((habit) => (
+          <TouchableOpacity
+            key={habit.id}
+            style={[
+              styles.optionButton,
+              selectedHabitId === habit.id && styles.selectedButton,
+            ]}
+            onPress={() => setSelectedHabitId(habit.id)}
+          >
+            <Text
+              style={
+                selectedHabitId === habit.id ? styles.selectedText : styles.optionText
+              }
+            >
+              {habit.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Enter date (e.g. 2026-04-21)"
+        value={date}
+        onChangeText={setDate}
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Enter number"
+        value={value}
+        onChangeText={setValue}
+        keyboardType="numeric"
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Optional notes"
+        value={notes}
+        onChangeText={setNotes}
+      />
+
+      <TouchableOpacity style={styles.addButton} onPress={addLog}>
+        <Text style={styles.addButtonText}>Add Log</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.listTitle}>Recent Logs</Text>
+
+      <FlatList
+        data={logList}
+        keyExtractor={(item) => item.id.toString()}
+        ListEmptyComponent={<Text style={styles.emptyText}>No logs added yet</Text>}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{item.habitName}</Text>
+            <Text style={styles.cardText}>Date: {item.date}</Text>
+            <Text style={styles.cardText}>Value: {item.value}</Text>
+            {item.notes ? (
+              <Text style={styles.cardText}>Notes: {item.notes}</Text>
+            ) : null}
+          </View>
+        )}
+      />
+    </View>
   );
 }
 
+// Basic styling for the log screen layout and cards
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f5f5f5',
   },
-  titleContainer: {
+  title: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  label: {
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  row: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    marginBottom: 15,
+  },
+  optionButton: {
+    backgroundColor: '#ddd',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  selectedButton: {
+    backgroundColor: '#2563eb',
+  },
+  optionText: {
+    color: '#000',
+  },
+  selectedText: {
+    color: '#fff',
+  },
+  input: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#bbb',
+  },
+  addButton: {
+    backgroundColor: '#000',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  listTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  emptyText: {
+    color: '#444',
+  },
+  card: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  cardTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  cardText: {
+    marginBottom: 2,
   },
 });
