@@ -1,98 +1,237 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+// Simple type to represent one habit in the app
+type Habit = {
+  id: string;
+  name: string;
+  category: string;
+  type: 'completed' | 'count-based';
+};
 
-export default function HomeScreen() {
+export default function HabitsScreen() {
+  // State is used for the form inputs and the habit list
+  // Later on, this data will come from SQLite instead of useState
+  const [habitName, setHabitName] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Fitness');
+  const [habitType, setHabitType] = useState<'completed' | 'count-based'>('completed');
+  const [habits, setHabits] = useState<Habit[]>([]);
+
+  // Hardcoded categories for now
+  const categories = ['Fitness', 'Learning', 'Health'];
+
+  // Adds a new habit to the top of the list
+  // It stops empty habit names from being added
+  const addHabit = () => {
+    if (!habitName.trim()) return;
+
+    const newHabit: Habit = {
+      id: Date.now().toString(),
+      name: habitName.trim(),
+      category: selectedCategory,
+      type: habitType,
+    };
+
+    setHabits((prevHabits) => [newHabit, ...prevHabits]);
+    setHabitName('');
+    setSelectedCategory('Fitness');
+    setHabitType('completed');
+  };
+
+  // Removes a habit by filtering it out of the array
+  // This is a simple way to handle delete before using a database
+  const deleteHabit = (habitId: string) => {
+    setHabits((prevHabits) => prevHabits.filter((habit) => habit.id !== habitId));
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View style={styles.container}>
+      <Text style={styles.title}>Habit Tracker</Text>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter habit name"
+        value={habitName}
+        onChangeText={setHabitName}
+      />
+
+      <Text style={styles.label}>Category</Text>
+      <View style={styles.row}>
+        {categories.map((category) => (
+          <TouchableOpacity
+            key={category}
+            style={[
+              styles.optionButton,
+              selectedCategory === category && styles.selectedButton,
+            ]}
+            onPress={() => setSelectedCategory(category)}
+          >
+            <Text
+              style={
+                selectedCategory === category ? styles.selectedText : styles.optionText
+              }
+            >
+              {category}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text style={styles.label}>Type</Text>
+      <View style={styles.row}>
+        <TouchableOpacity
+          style={[
+            styles.optionButton,
+            habitType === 'completed' && styles.selectedButton,
+          ]}
+          onPress={() => setHabitType('completed')}
+        >
+          <Text
+            style={habitType === 'completed' ? styles.selectedText : styles.optionText}
+          >
+            Completed
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.optionButton,
+            habitType === 'count-based' && styles.selectedButton,
+          ]}
+          onPress={() => setHabitType('count-based')}
+        >
+          <Text
+            style={habitType === 'count-based' ? styles.selectedText : styles.optionText}
+          >
+            Count-based
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity style={styles.addButton} onPress={addHabit}>
+        <Text style={styles.addButtonText}>Add Habit</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.listTitle}>Your Habits</Text>
+
+      <FlatList
+        data={habits}
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={<Text style={styles.emptyText}>No habits yet</Text>}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{item.name}</Text>
+            <Text style={styles.cardText}>Category: {item.category}</Text>
+            <Text style={styles.cardText}>Type: {item.type}</Text>
+
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => deleteHabit(item.id)}
+            >
+              <Text style={styles.deleteButtonText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      />
+    </View>
   );
 }
 
+// Basic styles for the main layout and cards
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f5f5f5',
   },
-  stepContainer: {
-    gap: 8,
+  title: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  input: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#bbb',
+  },
+  label: {
+    fontWeight: '600',
+    marginBottom: 5,
+  },
+  row: {
+    flexDirection: 'row',
+    marginBottom: 15,
+    flexWrap: 'wrap',
+  },
+  optionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#ddd',
+    borderRadius: 8,
+    marginRight: 10,
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  selectedButton: {
+    backgroundColor: '#2563eb',
+  },
+  optionText: {
+    color: '#000',
+  },
+  selectedText: {
+    color: '#fff',
+  },
+  addButton: {
+    backgroundColor: '#000',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  listTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  emptyText: {
+    color: '#444',
+  },
+  card: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  cardTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  cardText: {
+    marginBottom: 2,
+  },
+  deleteButton: {
+    backgroundColor: '#dc2626',
+    marginTop: 10,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });
