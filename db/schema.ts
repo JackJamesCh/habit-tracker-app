@@ -39,3 +39,22 @@ export const targets = sqliteTable('targets', {
     .default(true),
   createdAt: text('created_at').notNull(),
 });
+
+// Users table stores account details for people using the app
+// This is used for sign up and login
+export const users = sqliteTable('users', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  username: text('username').notNull(),
+  email: text('email').notNull().unique(),
+  password: text('password').notNull(),
+});
+
+// Sessions table stores the currently logged in user
+// This lets the app remember login state after restart
+export const sessions = sqliteTable('sessions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull(),
+  isLoggedIn: integer('is_logged_in', { mode: 'boolean' })
+    .notNull()
+    .default(true),
+});

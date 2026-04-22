@@ -43,4 +43,21 @@ sqlite.execSync(`
   );
 `);
 
+sqlite.execSync(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL
+  );
+`);
+
+sqlite.execSync(`
+  CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    is_logged_in INTEGER NOT NULL DEFAULT 1
+  );
+`);
+
 export const db = drizzle(sqlite);
