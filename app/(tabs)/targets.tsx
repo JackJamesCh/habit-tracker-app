@@ -12,6 +12,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { habitLogs, habits, targets } from '../../db/schema';
 import { createTarget } from '../../db/targets';
+import { useAppTheme } from '../../components/theme-context';
 
 // Type for habits shown in the target form
 type HabitItem = {
@@ -39,6 +40,16 @@ export default function TargetsScreen() {
   const [period, setPeriod] = useState<'weekly' | 'monthly'>('weekly');
   const [targetValue, setTargetValue] = useState('');
   const [targetList, setTargetList] = useState<TargetItem[]>([]);
+  const { isDark } = useAppTheme();
+
+  const backgroundColor = isDark ? '#111827' : '#f5f5f5';
+  const cardColor = isDark ? '#1f2937' : '#ffffff';
+  const textColor = isDark ? '#f9fafb' : '#000000';
+  const subTextColor = isDark ? '#d1d5db' : '#444444';
+  const inputColor = isDark ? '#1f2937' : '#ffffff';
+  const borderColor = isDark ? '#374151' : '#bbb';
+  const unselectedButtonColor = isDark ? '#374151' : '#ddd';
+  const buttonTextColor = isDark ? '#f9fafb' : '#000000';
 
   useFocusEffect(
     useCallback(() => {
@@ -162,23 +173,26 @@ export default function TargetsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Targets</Text>
+    <View style={[styles.container, { backgroundColor }]}>
+      <Text style={[styles.title, { color: textColor }]}>Targets</Text>
 
-      <Text style={styles.label}>Select Habit</Text>
+      <Text style={[styles.label, { color: textColor }]}>Select Habit</Text>
       <View style={styles.row}>
         {habitList.map((habit) => (
           <TouchableOpacity
             key={habit.id}
             style={[
               styles.optionButton,
+              { backgroundColor: unselectedButtonColor },
               selectedHabitId === habit.id && styles.selectedButton,
             ]}
             onPress={() => setSelectedHabitId(habit.id)}
           >
             <Text
               style={
-                selectedHabitId === habit.id ? styles.selectedText : styles.optionText
+                selectedHabitId === habit.id
+                  ? styles.selectedText
+                  : [styles.optionText, { color: buttonTextColor }]
               }
             >
               {habit.name}
@@ -187,16 +201,23 @@ export default function TargetsScreen() {
         ))}
       </View>
 
-      <Text style={styles.label}>Target Period</Text>
+      <Text style={[styles.label, { color: textColor }]}>Target Period</Text>
       <View style={styles.row}>
         <TouchableOpacity
           style={[
             styles.optionButton,
+            { backgroundColor: unselectedButtonColor },
             period === 'weekly' && styles.selectedButton,
           ]}
           onPress={() => setPeriod('weekly')}
         >
-          <Text style={period === 'weekly' ? styles.selectedText : styles.optionText}>
+          <Text
+            style={
+              period === 'weekly'
+                ? styles.selectedText
+                : [styles.optionText, { color: buttonTextColor }]
+            }
+          >
             Weekly
           </Text>
         </TouchableOpacity>
@@ -204,19 +225,34 @@ export default function TargetsScreen() {
         <TouchableOpacity
           style={[
             styles.optionButton,
+            { backgroundColor: unselectedButtonColor },
             period === 'monthly' && styles.selectedButton,
           ]}
           onPress={() => setPeriod('monthly')}
         >
-          <Text style={period === 'monthly' ? styles.selectedText : styles.optionText}>
+          <Text
+            style={
+              period === 'monthly'
+                ? styles.selectedText
+                : [styles.optionText, { color: buttonTextColor }]
+            }
+          >
             Monthly
           </Text>
         </TouchableOpacity>
       </View>
 
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          {
+            backgroundColor: inputColor,
+            borderColor,
+            color: textColor,
+          },
+        ]}
         placeholder="Enter target value"
+        placeholderTextColor={isDark ? '#9ca3af' : '#6b7280'}
         value={targetValue}
         onChangeText={setTargetValue}
         keyboardType="numeric"
@@ -226,20 +262,34 @@ export default function TargetsScreen() {
         <Text style={styles.addButtonText}>Add Target</Text>
       </TouchableOpacity>
 
-      <Text style={styles.listTitle}>Saved Targets</Text>
+      <Text style={[styles.listTitle, { color: textColor }]}>Saved Targets</Text>
 
       <FlatList
         data={targetList}
         keyExtractor={(item) => item.id.toString()}
-        ListEmptyComponent={<Text style={styles.emptyText}>No targets added yet</Text>}
+        ListEmptyComponent={
+          <Text style={[styles.emptyText, { color: subTextColor }]}>
+            No targets added yet
+          </Text>
+        }
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{item.habitName}</Text>
-            <Text style={styles.cardText}>Period: {item.period}</Text>
-            <Text style={styles.cardText}>Target: {item.targetValue}</Text>
-            <Text style={styles.cardText}>Current Progress: {item.currentValue}</Text>
-            <Text style={styles.cardText}>Remaining: {item.remainingValue}</Text>
-            <Text style={styles.cardText}>Status: {item.status}</Text>
+          <View style={[styles.card, { backgroundColor: cardColor }]}>
+            <Text style={[styles.cardTitle, { color: textColor }]}>{item.habitName}</Text>
+            <Text style={[styles.cardText, { color: subTextColor }]}>
+              Period: {item.period}
+            </Text>
+            <Text style={[styles.cardText, { color: subTextColor }]}>
+              Target: {item.targetValue}
+            </Text>
+            <Text style={[styles.cardText, { color: subTextColor }]}>
+              Current Progress: {item.currentValue}
+            </Text>
+            <Text style={[styles.cardText, { color: subTextColor }]}>
+              Remaining: {item.remainingValue}
+            </Text>
+            <Text style={[styles.cardText, { color: subTextColor }]}>
+              Status: {item.status}
+            </Text>
 
             <TouchableOpacity
               style={styles.deleteButton}
@@ -259,7 +309,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f5f5f5',
   },
   title: {
     fontSize: 26,
@@ -276,7 +325,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   optionButton: {
-    backgroundColor: '#ddd',
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -286,19 +334,15 @@ const styles = StyleSheet.create({
   selectedButton: {
     backgroundColor: '#2563eb',
   },
-  optionText: {
-    color: '#000',
-  },
+  optionText: {},
   selectedText: {
     color: '#fff',
   },
   input: {
-    backgroundColor: '#fff',
     padding: 12,
     borderRadius: 8,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#bbb',
   },
   addButton: {
     backgroundColor: '#000',
@@ -317,10 +361,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   emptyText: {
-    color: '#444',
+    marginTop: 6,
   },
   card: {
-    backgroundColor: '#fff',
     padding: 12,
     borderRadius: 8,
     marginBottom: 10,

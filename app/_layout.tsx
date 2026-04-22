@@ -2,6 +2,7 @@ import { Stack, router, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { seedDatabase } from '../db/seed';
 import { getCurrentUser } from '../db/auth';
+import { ThemeProvider } from '../components/theme-context';
 
 export default function RootLayout() {
   // This checks whether a user is logged in when the app starts
@@ -36,5 +37,9 @@ export default function RootLayout() {
     return null;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <ThemeProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </ThemeProvider>
+  );
 }

@@ -60,4 +60,12 @@ sqlite.execSync(`
   );
 `);
 
+sqlite.execSync(`
+  CREATE TABLE IF NOT EXISTS settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key TEXT NOT NULL UNIQUE,
+    value TEXT NOT NULL
+  );
+`);
+
 export const db = drizzle(sqlite);

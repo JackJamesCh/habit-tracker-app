@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { db } from '../../db/client';
 import { habitLogs, habits, targets } from '../../db/schema';
+import { useAppTheme } from '../../components/theme-context';
 
 type HabitChartItem = {
   habitName: string;
@@ -27,6 +28,13 @@ export default function InsightsScreen() {
     totalLoggedValue: 0,
     chartData: [],
   });
+  const { isDark } = useAppTheme();
+
+  const backgroundColor = isDark ? '#111827' : '#f5f5f5';
+  const cardColor = isDark ? '#1f2937' : '#ffffff';
+  const textColor = isDark ? '#f9fafb' : '#000000';
+  const subTextColor = isDark ? '#d1d5db' : '#444444';
+  const chartBackgroundColor = isDark ? '#374151' : '#e5e7eb';
 
   useFocusEffect(
     useCallback(() => {
@@ -67,46 +75,71 @@ export default function InsightsScreen() {
       : 1;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Insights</Text>
-      <Text style={styles.subtitle}>Overview of your habit tracking data</Text>
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor }]}>
+      <Text style={[styles.title, { color: textColor }]}>Insights</Text>
+      <Text style={[styles.subtitle, { color: subTextColor }]}>
+        Overview of your habit tracking data
+      </Text>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Total Habits</Text>
-        <Text style={styles.cardValue}>{insights.totalHabits}</Text>
+      <View style={[styles.card, { backgroundColor: cardColor }]}>
+        <Text style={[styles.cardTitle, { color: subTextColor }]}>Total Habits</Text>
+        <Text style={[styles.cardValue, { color: textColor }]}>
+          {insights.totalHabits}
+        </Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Total Logs</Text>
-        <Text style={styles.cardValue}>{insights.totalLogs}</Text>
+      <View style={[styles.card, { backgroundColor: cardColor }]}>
+        <Text style={[styles.cardTitle, { color: subTextColor }]}>Total Logs</Text>
+        <Text style={[styles.cardValue, { color: textColor }]}>
+          {insights.totalLogs}
+        </Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Total Targets</Text>
-        <Text style={styles.cardValue}>{insights.totalTargets}</Text>
+      <View style={[styles.card, { backgroundColor: cardColor }]}>
+        <Text style={[styles.cardTitle, { color: subTextColor }]}>Total Targets</Text>
+        <Text style={[styles.cardValue, { color: textColor }]}>
+          {insights.totalTargets}
+        </Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Total Logged Value</Text>
-        <Text style={styles.cardValue}>{insights.totalLoggedValue}</Text>
+      <View style={[styles.card, { backgroundColor: cardColor }]}>
+        <Text style={[styles.cardTitle, { color: subTextColor }]}>
+          Total Logged Value
+        </Text>
+        <Text style={[styles.cardValue, { color: textColor }]}>
+          {insights.totalLoggedValue}
+        </Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Logged Value by Habit</Text>
+      <View style={[styles.card, { backgroundColor: cardColor }]}>
+        <Text style={[styles.cardTitle, { color: subTextColor }]}>
+          Logged Value by Habit
+        </Text>
 
         {insights.chartData.length === 0 ? (
-          <Text style={styles.emptyText}>No chart data available yet</Text>
+          <Text style={[styles.emptyText, { color: subTextColor }]}>
+            No chart data available yet
+          </Text>
         ) : (
           insights.chartData.map((item) => {
             const barWidth = `${(item.totalValue / maxValue) * 100}%` as `${number}%`;
 
             return (
               <View key={item.habitName} style={styles.chartRow}>
-                <Text style={styles.chartLabel}>{item.habitName}</Text>
-                <View style={styles.barBackground}>
+                <Text style={[styles.chartLabel, { color: textColor }]}>
+                  {item.habitName}
+                </Text>
+                <View
+                  style={[
+                    styles.barBackground,
+                    { backgroundColor: chartBackgroundColor },
+                  ]}
+                >
                   <View style={[styles.barFill, { width: barWidth }]} />
                 </View>
-                <Text style={styles.chartValue}>{item.totalValue}</Text>
+                <Text style={[styles.chartValue, { color: subTextColor }]}>
+                  {item.totalValue}
+                </Text>
               </View>
             );
           })
@@ -120,7 +153,6 @@ export default function InsightsScreen() {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: '#f5f5f5',
     flexGrow: 1,
   },
   title: {
@@ -130,18 +162,15 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 15,
-    color: '#555',
     marginBottom: 20,
   },
   card: {
-    backgroundColor: '#fff',
     padding: 18,
     borderRadius: 10,
     marginBottom: 14,
   },
   cardTitle: {
     fontSize: 16,
-    color: '#444',
     marginBottom: 8,
   },
   cardValue: {
@@ -149,7 +178,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   emptyText: {
-    color: '#666',
     marginTop: 8,
   },
   chartRow: {
@@ -162,7 +190,6 @@ const styles = StyleSheet.create({
   },
   barBackground: {
     height: 18,
-    backgroundColor: '#e5e7eb',
     borderRadius: 6,
     overflow: 'hidden',
   },
@@ -174,6 +201,5 @@ const styles = StyleSheet.create({
   chartValue: {
     marginTop: 4,
     fontSize: 13,
-    color: '#444',
   },
 });

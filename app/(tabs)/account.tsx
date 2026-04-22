@@ -9,6 +9,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { deleteCurrentUser, getCurrentUser, logoutUser } from '../../db/auth';
+import { useAppTheme } from '../../components/theme-context';
 
 type CurrentUser = {
   id: number;
@@ -21,6 +22,12 @@ export default function AccountScreen() {
   // State stores the currently logged in user details
   // The screen reloads when opened so the latest session is shown
   const [currentUser, setCurrentUser] = useState<CurrentUser>(null);
+  const { theme, toggleTheme, isDark } = useAppTheme();
+
+  const backgroundColor = isDark ? '#111827' : '#f5f5f5';
+  const cardColor = isDark ? '#1f2937' : '#ffffff';
+  const textColor = isDark ? '#f9fafb' : '#000000';
+  const subTextColor = isDark ? '#d1d5db' : '#555555';
 
   useFocusEffect(
     useCallback(() => {
@@ -60,20 +67,28 @@ export default function AccountScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Account</Text>
+    <View style={[styles.container, { backgroundColor }]}>
+      <Text style={[styles.title, { color: textColor }]}>Account</Text>
 
       {currentUser ? (
-        <View style={styles.card}>
-          <Text style={styles.label}>Username</Text>
-          <Text style={styles.value}>{currentUser.username}</Text>
+        <View style={[styles.card, { backgroundColor: cardColor }]}>
+          <Text style={[styles.label, { color: subTextColor }]}>Username</Text>
+          <Text style={[styles.value, { color: textColor }]}>{currentUser.username}</Text>
 
-          <Text style={styles.label}>Email</Text>
-          <Text style={styles.value}>{currentUser.email}</Text>
+          <Text style={[styles.label, { color: subTextColor }]}>Email</Text>
+          <Text style={[styles.value, { color: textColor }]}>{currentUser.email}</Text>
         </View>
       ) : (
-        <Text style={styles.emptyText}>No user is currently logged in.</Text>
+        <Text style={[styles.emptyText, { color: subTextColor }]}>
+          No user is currently logged in.
+        </Text>
       )}
+
+      <TouchableOpacity style={styles.themeButton} onPress={toggleTheme}>
+        <Text style={styles.buttonText}>
+          Switch to {theme === 'light' ? 'Dark' : 'Light'} Mode
+        </Text>
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.buttonText}>Log Out</Text>
@@ -90,7 +105,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f5f5f5',
   },
   title: {
     fontSize: 26,
@@ -98,14 +112,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   card: {
-    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 10,
     marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    color: '#555',
     marginBottom: 4,
     marginTop: 8,
   },
@@ -114,8 +126,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   emptyText: {
-    color: '#555',
     marginBottom: 20,
+  },
+  themeButton: {
+    backgroundColor: '#4b5563',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 12,
   },
   logoutButton: {
     backgroundColor: '#000',

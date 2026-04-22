@@ -11,6 +11,7 @@ import { db } from '../../db/client';
 import { categories, habits } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { useFocusEffect } from '@react-navigation/native';
+import { useAppTheme } from '../../components/theme-context';
 
 // This type is used for the habits shown on screen
 type HabitItem = {
@@ -37,6 +38,16 @@ export default function HabitsScreen() {
   const [habitType, setHabitType] = useState<'completed' | 'count-based'>('completed');
   const [habitList, setHabitList] = useState<HabitItem[]>([]);
   const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
+  const { isDark } = useAppTheme();
+
+  const backgroundColor = isDark ? '#111827' : '#f5f5f5';
+  const cardColor = isDark ? '#1f2937' : '#ffffff';
+  const textColor = isDark ? '#f9fafb' : '#000000';
+  const subTextColor = isDark ? '#d1d5db' : '#444444';
+  const inputColor = isDark ? '#1f2937' : '#ffffff';
+  const borderColor = isDark ? '#374151' : '#bbb';
+  const buttonTextColor = isDark ? '#f9fafb' : '#000000';
+  const unselectedButtonColor = isDark ? '#374151' : '#ddd';
 
   // Loads categories and habits when the screen opens
   // This keeps the UI in sync with the data saved in SQLite
@@ -99,23 +110,32 @@ export default function HabitsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Habit Tracker</Text>
+    <View style={[styles.container, { backgroundColor }]}>
+      <Text style={[styles.title, { color: textColor }]}>Habit Tracker</Text>
 
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          {
+            backgroundColor: inputColor,
+            borderColor,
+            color: textColor,
+          },
+        ]}
         placeholder="Enter habit name"
+        placeholderTextColor={isDark ? '#9ca3af' : '#6b7280'}
         value={habitName}
         onChangeText={setHabitName}
       />
 
-      <Text style={styles.label}>Category</Text>
+      <Text style={[styles.label, { color: textColor }]}>Category</Text>
       <View style={styles.row}>
         {categoryList.map((category) => (
           <TouchableOpacity
             key={category.id}
             style={[
               styles.optionButton,
+              { backgroundColor: unselectedButtonColor },
               selectedCategoryId === category.id && styles.selectedButton,
             ]}
             onPress={() => setSelectedCategoryId(category.id)}
@@ -124,7 +144,7 @@ export default function HabitsScreen() {
               style={
                 selectedCategoryId === category.id
                   ? styles.selectedText
-                  : styles.optionText
+                  : [styles.optionText, { color: buttonTextColor }]
               }
             >
               {category.name}
@@ -133,17 +153,22 @@ export default function HabitsScreen() {
         ))}
       </View>
 
-      <Text style={styles.label}>Type</Text>
+      <Text style={[styles.label, { color: textColor }]}>Type</Text>
       <View style={styles.row}>
         <TouchableOpacity
           style={[
             styles.optionButton,
+            { backgroundColor: unselectedButtonColor },
             habitType === 'completed' && styles.selectedButton,
           ]}
           onPress={() => setHabitType('completed')}
         >
           <Text
-            style={habitType === 'completed' ? styles.selectedText : styles.optionText}
+            style={
+              habitType === 'completed'
+                ? styles.selectedText
+                : [styles.optionText, { color: buttonTextColor }]
+            }
           >
             Completed
           </Text>
@@ -152,13 +177,16 @@ export default function HabitsScreen() {
         <TouchableOpacity
           style={[
             styles.optionButton,
+            { backgroundColor: unselectedButtonColor },
             habitType === 'count-based' && styles.selectedButton,
           ]}
           onPress={() => setHabitType('count-based')}
         >
           <Text
             style={
-              habitType === 'count-based' ? styles.selectedText : styles.optionText
+              habitType === 'count-based'
+                ? styles.selectedText
+                : [styles.optionText, { color: buttonTextColor }]
             }
           >
             Count-based
@@ -170,27 +198,38 @@ export default function HabitsScreen() {
         <Text style={styles.addButtonText}>Add Habit</Text>
       </TouchableOpacity>
 
-      <Text style={styles.listTitle}>Your Habits</Text>
+      <Text style={[styles.listTitle, { color: textColor }]}>Your Habits</Text>
 
       <FlatList
         data={habitList}
         keyExtractor={(item) => item.id.toString()}
-        ListEmptyComponent={<Text style={styles.emptyText}>No habits yet</Text>}
+        ListEmptyComponent={
+          <Text style={[styles.emptyText, { color: subTextColor }]}>No habits yet</Text>
+        }
         renderItem={({ item }) => (
           <View
             style={[
               styles.card,
-              { borderLeftWidth: 8, borderLeftColor: item.categoryColor },
+              {
+                backgroundColor: cardColor,
+                borderLeftWidth: 8,
+                borderLeftColor: item.categoryColor,
+              },
             ]}
           >
             <View style={styles.cardHeader}>
               <View
                 style={[styles.categoryDot, { backgroundColor: item.categoryColor }]}
               />
-              <Text style={styles.cardTitle}>{item.name}</Text>
+              <Text style={[styles.cardTitle, { color: textColor }]}>{item.name}</Text>
             </View>
-            <Text style={styles.cardText}>Category: {item.categoryName}</Text>
-            <Text style={styles.cardText}>Type: {item.type}</Text>
+
+            <Text style={[styles.cardText, { color: subTextColor }]}>
+              Category: {item.categoryName}
+            </Text>
+            <Text style={[styles.cardText, { color: subTextColor }]}>
+              Type: {item.type}
+            </Text>
 
             <TouchableOpacity
               style={styles.deleteButton}
@@ -210,7 +249,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f5f5f5',
   },
   title: {
     fontSize: 26,
@@ -218,12 +256,10 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   input: {
-    backgroundColor: '#fff',
     padding: 12,
     borderRadius: 8,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: '#bbb',
   },
   label: {
     fontWeight: '600',
@@ -237,7 +273,6 @@ const styles = StyleSheet.create({
   optionButton: {
     paddingVertical: 10,
     paddingHorizontal: 12,
-    backgroundColor: '#ddd',
     borderRadius: 8,
     marginRight: 10,
     marginBottom: 8,
@@ -245,9 +280,7 @@ const styles = StyleSheet.create({
   selectedButton: {
     backgroundColor: '#2563eb',
   },
-  optionText: {
-    color: '#000',
-  },
+  optionText: {},
   selectedText: {
     color: '#fff',
   },
@@ -268,10 +301,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   emptyText: {
-    color: '#444',
+    marginTop: 6,
   },
   card: {
-    backgroundColor: '#fff',
     padding: 12,
     borderRadius: 8,
     marginBottom: 10,
@@ -300,7 +332,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 6,
   },
-
   categoryDot: {
     width: 12,
     height: 12,

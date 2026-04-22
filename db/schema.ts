@@ -58,3 +58,11 @@ export const sessions = sqliteTable('sessions', {
     .notNull()
     .default(true),
 });
+
+// Settings table stores simple app preferences like theme mode
+// This allows dark mode to stay saved after the app restarts
+export const settings = sqliteTable('settings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  key: text('key').notNull().unique(),
+  value: text('value').notNull(),
+});
