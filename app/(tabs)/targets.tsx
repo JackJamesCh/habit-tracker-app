@@ -69,11 +69,46 @@ export default function TargetsScreen() {
     setSelectedHabitId(null);
   }
 
+  const today = new Date();
+
+  // Get start and end of current week (Monday to Sunday)
+  const currentDay = today.getDay();
+  const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - daysFromMonday);
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+
+  // Get start and end of current month
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  endOfMonth.setHours(23, 59, 59, 999);
+
   const formattedTargets: TargetItem[] = savedTargets
     .map((target) => {
       const matchedHabit = savedHabits.find((habit) => habit.id === target.habitId);
 
-      const relatedLogs = savedLogs.filter((log) => log.habitId === target.habitId);
+      const relatedLogs = savedLogs.filter((log) => {
+        if (log.habitId !== target.habitId) return false;
+
+        const logDate = new Date(log.date);
+
+        if (target.period === 'weekly') {
+          return logDate >= startOfWeek && logDate <= endOfWeek;
+        }
+
+        if (target.period === 'monthly') {
+          return logDate >= startOfMonth && logDate <= endOfMonth;
+        }
+
+        return false;
+      });
 
       const currentValue = relatedLogs.reduce((sum, log) => sum + log.value, 0);
       const remainingValue = Math.max(target.targetValue - currentValue, 0);

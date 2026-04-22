@@ -17,7 +17,6 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
       }}
     >
-      {/* Habits */}
       <Tabs.Screen
         name="index"
         options={{
@@ -28,7 +27,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Logs */}
       <Tabs.Screen
         name="explore"
         options={{
@@ -39,13 +37,22 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Targets */}
       <Tabs.Screen
         name="targets"
         options={{
           title: 'Targets',
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="target" color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="insights"
+        options={{
+          title: 'Insights',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="chart.bar.fill" color={color} />
           ),
         }}
       />
