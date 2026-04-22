@@ -66,6 +66,16 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="categories"
+        options={{
+          title: 'Categories',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="square.grid.2x2.fill" color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

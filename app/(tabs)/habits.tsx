@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 import { db } from '../../db/client';
 import { categories, habits } from '../../db/schema';
 import { eq } from 'drizzle-orm';
+import { useFocusEffect } from '@react-navigation/native';
 
 // This type is used for the habits shown on screen
 type HabitItem = {
@@ -17,6 +18,7 @@ type HabitItem = {
   name: string;
   categoryId: number;
   categoryName: string;
+  categoryColor: string;
   type: 'completed' | 'count-based';
 };
 
@@ -38,9 +40,11 @@ export default function HabitsScreen() {
 
   // Loads categories and habits when the screen opens
   // This keeps the UI in sync with the data saved in SQLite
-  useEffect(() => {
-    loadData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
 
   const loadData = async () => {
     const savedCategories = await db.select().from(categories);
@@ -53,7 +57,7 @@ export default function HabitsScreen() {
       setSelectedCategoryId(savedCategories[0].id);
     }
 
-    const habitsWithCategoryNames: HabitItem[] = savedHabits.map((habit) => {
+    const habitsWithCategoryDetails: HabitItem[] = savedHabits.map((habit) => {
       const matchedCategory = savedCategories.find(
         (category) => category.id === habit.categoryId
       );
@@ -63,11 +67,12 @@ export default function HabitsScreen() {
         name: habit.name,
         categoryId: habit.categoryId,
         categoryName: matchedCategory ? matchedCategory.name : 'Unknown',
+        categoryColor: matchedCategory ? matchedCategory.color : '#d1d5db',
         type: habit.type as 'completed' | 'count-based',
       };
     });
 
-    setHabitList(habitsWithCategoryNames);
+    setHabitList(habitsWithCategoryDetails);
   };
 
   // Inserts a new habit into the database and reloads the list
@@ -172,8 +177,18 @@ export default function HabitsScreen() {
         keyExtractor={(item) => item.id.toString()}
         ListEmptyComponent={<Text style={styles.emptyText}>No habits yet</Text>}
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{item.name}</Text>
+          <View
+            style={[
+              styles.card,
+              { borderLeftWidth: 8, borderLeftColor: item.categoryColor },
+            ]}
+          >
+            <View style={styles.cardHeader}>
+              <View
+                style={[styles.categoryDot, { backgroundColor: item.categoryColor }]}
+              />
+              <Text style={styles.cardTitle}>{item.name}</Text>
+            </View>
             <Text style={styles.cardText}>Category: {item.categoryName}</Text>
             <Text style={styles.cardText}>Type: {item.type}</Text>
 
@@ -279,5 +294,17 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+
+  categoryDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
   },
 });
