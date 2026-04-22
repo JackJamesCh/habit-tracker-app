@@ -12,6 +12,8 @@ import { categories, habits } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAppTheme } from '../../components/theme-context';
+import { getPalette, spacing } from '../../constants/design-system';
+import { createSharedStyles } from '../../components/ui/shared-styles';
 
 // This type is used for the habits shown on screen
 type HabitItem = {
@@ -36,18 +38,14 @@ export default function HabitsScreen() {
   const [habitName, setHabitName] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [habitType, setHabitType] = useState<'completed' | 'count-based'>('completed');
+  const [editingHabitId, setEditingHabitId] = useState<number | null>(null);
   const [habitList, setHabitList] = useState<HabitItem[]>([]);
   const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
   const { isDark } = useAppTheme();
+  const palette = getPalette(isDark);
+  const sharedStyles = createSharedStyles(palette, isDark);
 
-  const backgroundColor = isDark ? '#111827' : '#f5f5f5';
-  const cardColor = isDark ? '#1f2937' : '#ffffff';
-  const textColor = isDark ? '#f9fafb' : '#000000';
-  const subTextColor = isDark ? '#d1d5db' : '#444444';
-  const inputColor = isDark ? '#1f2937' : '#ffffff';
-  const borderColor = isDark ? '#374151' : '#bbb';
-  const buttonTextColor = isDark ? '#f9fafb' : '#000000';
-  const unselectedButtonColor = isDark ? '#374151' : '#ddd';
+  const buttonTextColor = palette.text;
 
   // Loads categories and habits when the screen opens
   // This keeps the UI in sync with the data saved in SQLite
@@ -86,19 +84,34 @@ export default function HabitsScreen() {
     setHabitList(habitsWithCategoryDetails);
   };
 
-  // Inserts a new habit into the database and reloads the list
-  // It stops empty names or missing categories from being saved
-  const addHabit = async () => {
-    if (!habitName.trim() || selectedCategoryId === null) return;
-
-    await db.insert(habits).values({
-      name: habitName.trim(),
-      categoryId: selectedCategoryId,
-      type: habitType,
-    });
-
+  const clearHabitForm = () => {
     setHabitName('');
     setHabitType('completed');
+    setEditingHabitId(null);
+  };
+
+  // Adds or updates a habit, then reloads the list
+  const saveHabit = async () => {
+    if (!habitName.trim() || selectedCategoryId === null) return;
+
+    if (editingHabitId !== null) {
+      await db
+        .update(habits)
+        .set({
+          name: habitName.trim(),
+          categoryId: selectedCategoryId,
+          type: habitType,
+        })
+        .where(eq(habits.id, editingHabitId));
+    } else {
+      await db.insert(habits).values({
+        name: habitName.trim(),
+        categoryId: selectedCategoryId,
+        type: habitType,
+      });
+    }
+
+    clearHabitForm();
     await loadData();
   };
 
@@ -106,68 +119,79 @@ export default function HabitsScreen() {
   // After delete, the screen reloads the updated habit list
   const deleteHabit = async (habitId: number) => {
     await db.delete(habits).where(eq(habits.id, habitId));
+
+    if (editingHabitId === habitId) {
+      clearHabitForm();
+    }
+
     await loadData();
   };
 
+  // Loads a habit into the current form for editing
+  const startEditingHabit = (habit: HabitItem) => {
+    setEditingHabitId(habit.id);
+    setHabitName(habit.name);
+    setSelectedCategoryId(habit.categoryId);
+    setHabitType(habit.type);
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor }]}>
-      <Text style={[styles.title, { color: textColor }]}>Habit Tracker</Text>
+    <View style={sharedStyles.screen}>
+      <FlatList
+        data={habitList}
+        keyExtractor={(item) => item.id.toString()}
+        ListHeaderComponent={
+          <View style={sharedStyles.screenContent}>
+            <Text style={sharedStyles.title}>Habit Tracker</Text>
 
-      <TextInput
-        style={[
-          styles.input,
-          {
-            backgroundColor: inputColor,
-            borderColor,
-            color: textColor,
-          },
-        ]}
-        placeholder="Enter habit name"
-        placeholderTextColor={isDark ? '#9ca3af' : '#6b7280'}
-        value={habitName}
-        onChangeText={setHabitName}
-      />
+            {/* Inspired by: https://reactnativecomponents.com/components/card */}
+            <View style={sharedStyles.card}>
+              <TextInput
+                style={sharedStyles.input}
+                placeholder="Enter habit name"
+                placeholderTextColor={palette.textMuted}
+                value={habitName}
+                onChangeText={setHabitName}
+              />
 
-      <Text style={[styles.label, { color: textColor }]}>Category</Text>
-      <View style={styles.row}>
-        {categoryList.map((category) => (
-          <TouchableOpacity
-            key={category.id}
-            style={[
-              styles.optionButton,
-              { backgroundColor: unselectedButtonColor },
-              selectedCategoryId === category.id && styles.selectedButton,
-            ]}
-            onPress={() => setSelectedCategoryId(category.id)}
-          >
-            <Text
-              style={
-                selectedCategoryId === category.id
-                  ? styles.selectedText
-                  : [styles.optionText, { color: buttonTextColor }]
-              }
-            >
-              {category.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+              <Text style={sharedStyles.fieldLabel}>Category</Text>
+              <View style={sharedStyles.rowWrap}>
+                {categoryList.map((category) => (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={[
+                      sharedStyles.pillButton,
+                      selectedCategoryId === category.id && sharedStyles.pillButtonActive,
+                    ]}
+                    onPress={() => setSelectedCategoryId(category.id)}
+                  >
+                    <Text
+                      style={
+                        selectedCategoryId === category.id
+                          ? sharedStyles.pillButtonTextActive
+                          : [sharedStyles.pillButtonText, { color: buttonTextColor }]
+                      }
+                    >
+                      {category.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-      <Text style={[styles.label, { color: textColor }]}>Type</Text>
-      <View style={styles.row}>
+              <Text style={sharedStyles.fieldLabel}>Type</Text>
+              <View style={sharedStyles.rowWrap}>
         <TouchableOpacity
           style={[
-            styles.optionButton,
-            { backgroundColor: unselectedButtonColor },
-            habitType === 'completed' && styles.selectedButton,
+            sharedStyles.pillButton,
+            habitType === 'completed' && sharedStyles.pillButtonActive,
           ]}
           onPress={() => setHabitType('completed')}
         >
           <Text
             style={
               habitType === 'completed'
-                ? styles.selectedText
-                : [styles.optionText, { color: buttonTextColor }]
+                ? sharedStyles.pillButtonTextActive
+                : [sharedStyles.pillButtonText, { color: buttonTextColor }]
             }
           >
             Completed
@@ -176,137 +200,95 @@ export default function HabitsScreen() {
 
         <TouchableOpacity
           style={[
-            styles.optionButton,
-            { backgroundColor: unselectedButtonColor },
-            habitType === 'count-based' && styles.selectedButton,
+            sharedStyles.pillButton,
+            habitType === 'count-based' && sharedStyles.pillButtonActive,
           ]}
           onPress={() => setHabitType('count-based')}
         >
           <Text
             style={
               habitType === 'count-based'
-                ? styles.selectedText
-                : [styles.optionText, { color: buttonTextColor }]
+                ? sharedStyles.pillButtonTextActive
+                : [sharedStyles.pillButtonText, { color: buttonTextColor }]
             }
           >
             Count-based
           </Text>
         </TouchableOpacity>
-      </View>
+              </View>
 
-      <TouchableOpacity style={styles.addButton} onPress={addHabit}>
-        <Text style={styles.addButtonText}>Add Habit</Text>
-      </TouchableOpacity>
+              {/* Inspired by: https://reactnativecomponents.com/components/button */}
+              <TouchableOpacity style={sharedStyles.primaryButton} onPress={saveHabit}>
+                <Text style={sharedStyles.buttonTextPrimary}>
+                  {editingHabitId !== null ? 'Update Habit' : 'Add Habit'}
+                </Text>
+              </TouchableOpacity>
 
-      <Text style={[styles.listTitle, { color: textColor }]}>Your Habits</Text>
-
-      <FlatList
-        data={habitList}
-        keyExtractor={(item) => item.id.toString()}
-        ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: subTextColor }]}>No habits yet</Text>
-        }
-        renderItem={({ item }) => (
-          <View
-            style={[
-              styles.card,
-              {
-                backgroundColor: cardColor,
-                borderLeftWidth: 8,
-                borderLeftColor: item.categoryColor,
-              },
-            ]}
-          >
-            <View style={styles.cardHeader}>
-              <View
-                style={[styles.categoryDot, { backgroundColor: item.categoryColor }]}
-              />
-              <Text style={[styles.cardTitle, { color: textColor }]}>{item.name}</Text>
+              {editingHabitId !== null ? (
+                <TouchableOpacity style={[sharedStyles.secondaryButton, styles.secondaryAction]} onPress={clearHabitForm}>
+                  <Text style={sharedStyles.buttonTextSecondary}>Cancel Edit</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
 
-            <Text style={[styles.cardText, { color: subTextColor }]}>
-              Category: {item.categoryName}
-            </Text>
-            <Text style={[styles.cardText, { color: subTextColor }]}>
-              Type: {item.type}
-            </Text>
-
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => deleteHabit(item.id)}
+            <Text style={sharedStyles.sectionTitle}>Your Habits</Text>
+          </View>
+        }
+        ListEmptyComponent={<Text style={[sharedStyles.emptyText, styles.emptyPad]}>No habits yet</Text>}
+        renderItem={({ item }) => (
+          <View style={styles.itemWrapper}>
+            <View
+              style={[
+                sharedStyles.card,
+                styles.card,
+                {
+                  borderLeftWidth: 8,
+                  borderLeftColor: item.categoryColor,
+                },
+              ]}
             >
-              <Text style={styles.deleteButtonText}>Delete</Text>
-            </TouchableOpacity>
+              <View style={styles.cardHeader}>
+                <View
+                  style={[styles.categoryDot, { backgroundColor: item.categoryColor }]}
+                />
+                <Text style={[styles.cardTitle, { color: palette.text }]}>{item.name}</Text>
+              </View>
+
+              <Text style={[styles.cardText, { color: palette.textMuted }]}>Category: {item.categoryName}</Text>
+              <Text style={[styles.cardText, { color: palette.textMuted }]}>Type: {item.type}</Text>
+
+              <View style={sharedStyles.inlineActions}>
+                <TouchableOpacity
+                  style={[sharedStyles.secondaryButton, styles.actionButton]}
+                  onPress={() => startEditingHabit(item)}
+                >
+                  <Text style={sharedStyles.buttonTextSecondary}>Edit</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[sharedStyles.dangerButton, styles.actionButton]}
+                  onPress={() => deleteHabit(item.id)}
+                >
+                  <Text style={sharedStyles.buttonTextDanger}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         )}
+        contentContainerStyle={styles.listContent}
       />
+
     </View>
   );
 }
 
 // Basic screen styling for layout and spacing
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  input: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 15,
-    borderWidth: 1,
-  },
-  label: {
-    fontWeight: '600',
-    marginBottom: 5,
-  },
-  row: {
-    flexDirection: 'row',
-    marginBottom: 15,
-    flexWrap: 'wrap',
-  },
-  optionButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginRight: 10,
-    marginBottom: 8,
-  },
-  selectedButton: {
-    backgroundColor: '#2563eb',
-  },
-  optionText: {},
-  selectedText: {
-    color: '#fff',
-  },
-  addButton: {
-    backgroundColor: '#000',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  listTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  emptyText: {
-    marginTop: 6,
+  itemWrapper: {
+    paddingHorizontal: spacing.xl,
   },
   card: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: spacing.sm,
   },
   cardTitle: {
     fontWeight: 'bold',
@@ -316,16 +298,11 @@ const styles = StyleSheet.create({
   cardText: {
     marginBottom: 2,
   },
-  deleteButton: {
-    backgroundColor: '#dc2626',
-    marginTop: 10,
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
+  actionButton: {
+    flex: 1,
   },
-  deleteButtonText: {
-    color: '#fff',
-    fontWeight: '600',
+  secondaryAction: {
+    marginTop: spacing.sm,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -337,5 +314,11 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     marginRight: 8,
+  },
+  emptyPad: {
+    marginHorizontal: spacing.xl,
+  },
+  listContent: {
+    paddingBottom: spacing.xl,
   },
 });

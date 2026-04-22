@@ -13,6 +13,8 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { habitLogs, habits } from '../../db/schema';
 import { useAppTheme } from '../../components/theme-context';
+import { getPalette, spacing } from '../../constants/design-system';
+import { createSharedStyles } from '../../components/ui/shared-styles';
 
 // Type for habits shown as selectable buttons
 type HabitItem = {
@@ -39,6 +41,7 @@ export default function LogsScreen() {
   const [date, setDate] = useState('');
   const [value, setValue] = useState('');
   const [notes, setNotes] = useState('');
+  const [editingLogId, setEditingLogId] = useState<number | null>(null);
   const [logList, setLogList] = useState<LogItem[]>([]);
 
   const [filterHabitId, setFilterHabitId] = useState<number | null>(null);
@@ -46,15 +49,10 @@ export default function LogsScreen() {
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
   const { isDark } = useAppTheme();
+  const palette = getPalette(isDark);
+  const sharedStyles = createSharedStyles(palette, isDark);
 
-  const backgroundColor = isDark ? '#111827' : '#f5f5f5';
-  const cardColor = isDark ? '#1f2937' : '#ffffff';
-  const textColor = isDark ? '#f9fafb' : '#000000';
-  const subTextColor = isDark ? '#d1d5db' : '#444444';
-  const inputColor = isDark ? '#1f2937' : '#ffffff';
-  const borderColor = isDark ? '#374151' : '#bbb';
-  const unselectedButtonColor = isDark ? '#374151' : '#ddd';
-  const buttonTextColor = isDark ? '#f9fafb' : '#000000';
+  const buttonTextColor = palette.text;
 
   useFocusEffect(
     useCallback(() => {
@@ -104,25 +102,41 @@ export default function LogsScreen() {
     setLogList(formattedLogs);
   };
 
-  // Adds a new habit log into the database and reloads the list
-  // It checks that a habit, date, and number value have been entered first
-  const addLog = async () => {
+  const clearLogForm = () => {
+    setDate('');
+    setValue('');
+    setNotes('');
+    setEditingLogId(null);
+  };
+
+  // Adds or updates a habit log and reloads list
+  const saveLog = async () => {
     if (!selectedHabitId || !date.trim() || !value.trim()) return;
 
     const numericValue = Number(value);
 
     if (isNaN(numericValue)) return;
 
-    await db.insert(habitLogs).values({
-      habitId: selectedHabitId,
-      date: date.trim(),
-      value: numericValue,
-      notes: notes.trim() ? notes.trim() : null,
-    });
+    if (editingLogId !== null) {
+      await db
+        .update(habitLogs)
+        .set({
+          habitId: selectedHabitId,
+          date: date.trim(),
+          value: numericValue,
+          notes: notes.trim() ? notes.trim() : null,
+        })
+        .where(eq(habitLogs.id, editingLogId));
+    } else {
+      await db.insert(habitLogs).values({
+        habitId: selectedHabitId,
+        date: date.trim(),
+        value: numericValue,
+        notes: notes.trim() ? notes.trim() : null,
+      });
+    }
 
-    setDate('');
-    setValue('');
-    setNotes('');
+    clearLogForm();
     await loadData();
   };
 
@@ -130,7 +144,21 @@ export default function LogsScreen() {
   // This helps the user remove mistakes from the log list
   const deleteLog = async (logId: number) => {
     await db.delete(habitLogs).where(eq(habitLogs.id, logId));
+
+    if (editingLogId === logId) {
+      clearLogForm();
+    }
+
     await loadData();
+  };
+
+  // Loads one log into the form for editing
+  const startEditingLog = (log: LogItem) => {
+    setEditingLogId(log.id);
+    setSelectedHabitId(log.habitId);
+    setDate(log.date);
+    setValue(log.value.toString());
+    setNotes(log.notes ?? '');
   };
 
   // Filters logs by selected habit, search text, and date range
@@ -158,150 +186,119 @@ export default function LogsScreen() {
   });
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor }]}>
+    <SafeAreaView style={sharedStyles.screen}>
       <FlatList
         data={filteredLogs}
         keyExtractor={(item) => item.id.toString()}
         ListHeaderComponent={
-          <View>
-            <Text style={[styles.title, { color: textColor }]}>Habit Logs</Text>
+          <View style={sharedStyles.screenContent}>
+            <Text style={sharedStyles.title}>Habit Logs</Text>
 
-            <Text style={[styles.label, { color: textColor }]}>Select Habit</Text>
-            <View style={styles.row}>
+            {/* Inspired by: https://reactnativecomponents.com/components/card */}
+            <View style={sharedStyles.card}>
+              <Text style={sharedStyles.fieldLabel}>Select Habit</Text>
+              <View style={sharedStyles.rowWrap}>
               {habitList.map((habit) => (
                 <TouchableOpacity
                   key={habit.id}
                   style={[
-                    styles.optionButton,
-                    { backgroundColor: unselectedButtonColor },
-                    selectedHabitId === habit.id && styles.selectedButton,
+                    sharedStyles.pillButton,
+                    selectedHabitId === habit.id && sharedStyles.pillButtonActive,
                   ]}
                   onPress={() => setSelectedHabitId(habit.id)}
                 >
                   <Text
                     style={
                       selectedHabitId === habit.id
-                        ? styles.selectedText
-                        : [styles.optionText, { color: buttonTextColor }]
+                        ? sharedStyles.pillButtonTextActive
+                        : [sharedStyles.pillButtonText, { color: buttonTextColor }]
                     }
                   >
                     {habit.name}
                   </Text>
                 </TouchableOpacity>
               ))}
-            </View>
+              </View>
 
             <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: inputColor,
-                  borderColor,
-                  color: textColor,
-                },
-              ]}
+              style={sharedStyles.input}
               placeholder="Enter date (e.g. 2026-04-21)"
-              placeholderTextColor={isDark ? '#9ca3af' : '#6b7280'}
+              placeholderTextColor={palette.textMuted}
               value={date}
               onChangeText={setDate}
             />
 
             <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: inputColor,
-                  borderColor,
-                  color: textColor,
-                },
-              ]}
+              style={sharedStyles.input}
               placeholder="Enter number"
-              placeholderTextColor={isDark ? '#9ca3af' : '#6b7280'}
+              placeholderTextColor={palette.textMuted}
               value={value}
               onChangeText={setValue}
               keyboardType="numeric"
             />
 
             <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: inputColor,
-                  borderColor,
-                  color: textColor,
-                },
-              ]}
+              style={sharedStyles.input}
               placeholder="Optional notes"
-              placeholderTextColor={isDark ? '#9ca3af' : '#6b7280'}
+              placeholderTextColor={palette.textMuted}
               value={notes}
               onChangeText={setNotes}
             />
 
-            <TouchableOpacity style={styles.addButton} onPress={addLog}>
-              <Text style={styles.addButtonText}>Add Log</Text>
+            {/* Inspired by: https://reactnativecomponents.com/components/button */}
+            <TouchableOpacity style={sharedStyles.primaryButton} onPress={saveLog}>
+              <Text style={sharedStyles.buttonTextPrimary}>
+                {editingLogId !== null ? 'Update Log' : 'Add Log'}
+              </Text>
             </TouchableOpacity>
 
-            <Text style={[styles.listTitle, { color: textColor }]}>Filter Logs</Text>
+            {editingLogId !== null ? (
+              <TouchableOpacity style={[sharedStyles.secondaryButton, styles.secondaryAction]} onPress={clearLogForm}>
+                <Text style={sharedStyles.buttonTextSecondary}>Cancel Edit</Text>
+              </TouchableOpacity>
+            ) : null}
+            </View>
+
+            <View style={sharedStyles.card}>
+              <Text style={sharedStyles.sectionTitle}>Filter Logs</Text>
 
             <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: inputColor,
-                  borderColor,
-                  color: textColor,
-                },
-              ]}
+              style={sharedStyles.input}
               placeholder="Search by habit, date, or notes"
-              placeholderTextColor={isDark ? '#9ca3af' : '#6b7280'}
+              placeholderTextColor={palette.textMuted}
               value={searchText}
               onChangeText={setSearchText}
             />
 
             <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: inputColor,
-                  borderColor,
-                  color: textColor,
-                },
-              ]}
+              style={sharedStyles.input}
               placeholder="Start date (e.g. 2026-04-01)"
-              placeholderTextColor={isDark ? '#9ca3af' : '#6b7280'}
+              placeholderTextColor={palette.textMuted}
               value={startDateFilter}
               onChangeText={setStartDateFilter}
             />
 
             <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: inputColor,
-                  borderColor,
-                  color: textColor,
-                },
-              ]}
+              style={sharedStyles.input}
               placeholder="End date (e.g. 2026-04-30)"
-              placeholderTextColor={isDark ? '#9ca3af' : '#6b7280'}
+              placeholderTextColor={palette.textMuted}
               value={endDateFilter}
               onChangeText={setEndDateFilter}
             />
 
-            <View style={styles.row}>
+            <View style={sharedStyles.rowWrap}>
               <TouchableOpacity
                 style={[
-                  styles.optionButton,
-                  { backgroundColor: unselectedButtonColor },
-                  filterHabitId === null && styles.selectedButton,
+                  sharedStyles.pillButton,
+                  filterHabitId === null && sharedStyles.pillButtonActive,
                 ]}
                 onPress={() => setFilterHabitId(null)}
               >
                 <Text
                   style={
                     filterHabitId === null
-                      ? styles.selectedText
-                      : [styles.optionText, { color: buttonTextColor }]
+                      ? sharedStyles.pillButtonTextActive
+                      : [sharedStyles.pillButtonText, { color: buttonTextColor }]
                   }
                 >
                   All
@@ -312,17 +309,16 @@ export default function LogsScreen() {
                 <TouchableOpacity
                   key={habit.id}
                   style={[
-                    styles.optionButton,
-                    { backgroundColor: unselectedButtonColor },
-                    filterHabitId === habit.id && styles.selectedButton,
+                    sharedStyles.pillButton,
+                    filterHabitId === habit.id && sharedStyles.pillButtonActive,
                   ]}
                   onPress={() => setFilterHabitId(habit.id)}
                 >
                   <Text
                     style={
                       filterHabitId === habit.id
-                        ? styles.selectedText
-                        : [styles.optionText, { color: buttonTextColor }]
+                        ? sharedStyles.pillButtonTextActive
+                        : [sharedStyles.pillButtonText, { color: buttonTextColor }]
                     }
                   >
                     {habit.name}
@@ -330,34 +326,45 @@ export default function LogsScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+            </View>
 
-            <Text style={[styles.listTitle, { color: textColor }]}>Recent Logs</Text>
+            <Text style={sharedStyles.sectionTitle}>Recent Logs</Text>
           </View>
         }
-        ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: subTextColor }]}>No logs found</Text>
-        }
+        ListEmptyComponent={<Text style={[sharedStyles.emptyText, styles.emptyText]}>No logs found</Text>}
         renderItem={({ item }) => (
-          <View style={[styles.card, { backgroundColor: cardColor }]}>
-            <Text style={[styles.cardTitle, { color: textColor }]}>{item.habitName}</Text>
-            <Text style={[styles.cardText, { color: subTextColor }]}>
+          <View style={styles.itemWrapper}>
+            {/* Inspired by: https://reactnativecomponents.com/components/list-item */}
+            <View style={sharedStyles.card}>
+            <Text style={[styles.cardTitle, { color: palette.text }]}>{item.habitName}</Text>
+            <Text style={[styles.cardText, { color: palette.textMuted }]}>
               Date: {item.date}
             </Text>
-            <Text style={[styles.cardText, { color: subTextColor }]}>
+            <Text style={[styles.cardText, { color: palette.textMuted }]}>
               Value: {item.value}
             </Text>
             {item.notes ? (
-              <Text style={[styles.cardText, { color: subTextColor }]}>
+              <Text style={[styles.cardText, { color: palette.textMuted }]}>
                 Notes: {item.notes}
               </Text>
             ) : null}
 
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => deleteLog(item.id)}
-            >
-              <Text style={styles.deleteButtonText}>Delete Log</Text>
-            </TouchableOpacity>
+            <View style={sharedStyles.inlineActions}>
+              <TouchableOpacity
+                style={[sharedStyles.secondaryButton, styles.actionButton]}
+                onPress={() => startEditingLog(item)}
+              >
+                <Text style={sharedStyles.buttonTextSecondary}>Edit Log</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[sharedStyles.dangerButton, styles.actionButton]}
+                onPress={() => deleteLog(item.id)}
+              >
+                <Text style={sharedStyles.buttonTextDanger}>Delete Log</Text>
+              </TouchableOpacity>
+            </View>
+            </View>
           </View>
         )}
         contentContainerStyle={styles.logsListContent}
@@ -369,75 +376,8 @@ export default function LogsScreen() {
 
 // Basic styling for the log screen layout and cards
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  label: {
-    fontWeight: '600',
-    marginBottom: 8,
-    paddingHorizontal: 20,
-  },
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 15,
-    paddingHorizontal: 20,
-  },
-  optionButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  selectedButton: {
-    backgroundColor: '#2563eb',
-  },
-  optionText: {},
-  selectedText: {
-    color: '#fff',
-  },
-  input: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    marginHorizontal: 20,
-  },
-  addButton: {
-    backgroundColor: '#000',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
-    marginHorizontal: 20,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  listTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    paddingHorizontal: 20,
-  },
   emptyText: {
-    paddingHorizontal: 20,
-    marginTop: 10,
-  },
-  card: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 10,
-    marginHorizontal: 20,
+    marginHorizontal: spacing.xl,
   },
   cardTitle: {
     fontWeight: 'bold',
@@ -447,18 +387,16 @@ const styles = StyleSheet.create({
   cardText: {
     marginBottom: 2,
   },
-  deleteButton: {
-    backgroundColor: '#dc2626',
-    marginTop: 10,
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
+  secondaryAction: {
+    marginTop: spacing.sm,
   },
-  deleteButtonText: {
-    color: '#fff',
-    fontWeight: '600',
+  actionButton: {
+    flex: 1,
+  },
+  itemWrapper: {
+    paddingHorizontal: spacing.xl,
   },
   logsListContent: {
-    paddingBottom: 30,
+    paddingBottom: spacing.xl,
   },
 });

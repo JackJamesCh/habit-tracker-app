@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getSavedTheme, saveTheme } from '../db/settings';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -18,8 +17,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const loadTheme = async () => {
-      const savedTheme = await getSavedTheme();
-      setTheme(savedTheme as ThemeMode);
+      try {
+        const { getSavedTheme } = await import('../db/settings');
+        const savedTheme = await getSavedTheme();
+        setTheme(savedTheme as ThemeMode);
+      } catch {
+        setTheme('light');
+      }
     };
 
     loadTheme();
@@ -28,7 +32,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = async () => {
     const newTheme: ThemeMode = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
-    await saveTheme(newTheme);
+
+    try {
+      const { saveTheme } = await import('../db/settings');
+      await saveTheme(newTheme);
+    } catch {
+      // Ignore persistence errors so UI theme still toggles in unsupported environments.
+    }
   };
 
   return (
@@ -48,7 +58,11 @@ export function useAppTheme() {
   const context = useContext(ThemeContext);
 
   if (!context) {
-    throw new Error('useAppTheme must be used inside ThemeProvider');
+    return {
+      theme: 'light' as const,
+      toggleTheme: async () => {},
+      isDark: false,
+    };
   }
 
   return context;

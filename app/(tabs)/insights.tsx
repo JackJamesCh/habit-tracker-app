@@ -4,6 +4,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { db } from '../../db/client';
 import { habitLogs, habits, targets } from '../../db/schema';
 import { useAppTheme } from '../../components/theme-context';
+import { getPalette, spacing } from '../../constants/design-system';
+import { createSharedStyles } from '../../components/ui/shared-styles';
 
 type HabitChartItem = {
   habitName: string;
@@ -29,12 +31,10 @@ export default function InsightsScreen() {
     chartData: [],
   });
   const { isDark } = useAppTheme();
+  const palette = getPalette(isDark);
+  const sharedStyles = createSharedStyles(palette, isDark);
 
-  const backgroundColor = isDark ? '#111827' : '#f5f5f5';
-  const cardColor = isDark ? '#1f2937' : '#ffffff';
-  const textColor = isDark ? '#f9fafb' : '#000000';
-  const subTextColor = isDark ? '#d1d5db' : '#444444';
-  const chartBackgroundColor = isDark ? '#374151' : '#e5e7eb';
+  const chartBackgroundColor = palette.surfaceAlt;
 
   useFocusEffect(
     useCallback(() => {
@@ -75,60 +75,47 @@ export default function InsightsScreen() {
       : 1;
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor }]}>
-      <Text style={[styles.title, { color: textColor }]}>Insights</Text>
-      <Text style={[styles.subtitle, { color: subTextColor }]}>
-        Overview of your habit tracking data
-      </Text>
+    <ScrollView style={sharedStyles.screen} contentContainerStyle={sharedStyles.screenContent}>
+      <Text style={sharedStyles.title}>Insights</Text>
+      <Text style={sharedStyles.subtitle}>Overview of your habit tracking data</Text>
 
-      <View style={[styles.card, { backgroundColor: cardColor }]}>
-        <Text style={[styles.cardTitle, { color: subTextColor }]}>Total Habits</Text>
-        <Text style={[styles.cardValue, { color: textColor }]}>
-          {insights.totalHabits}
-        </Text>
+      {/* Inspired by: https://reactnativecomponents.com/components/card */}
+      <View style={styles.statsGrid}>
+        <View style={[sharedStyles.card, styles.statCard]}>
+          <Text style={[styles.cardTitle, { color: palette.textMuted }]}>Total Habits</Text>
+          <Text style={[styles.cardValue, { color: palette.text }]}>{insights.totalHabits}</Text>
+        </View>
+
+        <View style={[sharedStyles.card, styles.statCard]}>
+          <Text style={[styles.cardTitle, { color: palette.textMuted }]}>Total Logs</Text>
+          <Text style={[styles.cardValue, { color: palette.text }]}>{insights.totalLogs}</Text>
+        </View>
+
+        <View style={[sharedStyles.card, styles.statCard]}>
+          <Text style={[styles.cardTitle, { color: palette.textMuted }]}>Total Targets</Text>
+          <Text style={[styles.cardValue, { color: palette.text }]}>{insights.totalTargets}</Text>
+        </View>
+
+        <View style={[sharedStyles.card, styles.statCard]}>
+          <Text style={[styles.cardTitle, { color: palette.textMuted }]}>Total Logged Value</Text>
+          <Text style={[styles.cardValue, { color: palette.text }]}>{insights.totalLoggedValue}</Text>
+        </View>
       </View>
 
-      <View style={[styles.card, { backgroundColor: cardColor }]}>
-        <Text style={[styles.cardTitle, { color: subTextColor }]}>Total Logs</Text>
-        <Text style={[styles.cardValue, { color: textColor }]}>
-          {insights.totalLogs}
-        </Text>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: cardColor }]}>
-        <Text style={[styles.cardTitle, { color: subTextColor }]}>Total Targets</Text>
-        <Text style={[styles.cardValue, { color: textColor }]}>
-          {insights.totalTargets}
-        </Text>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: cardColor }]}>
-        <Text style={[styles.cardTitle, { color: subTextColor }]}>
-          Total Logged Value
-        </Text>
-        <Text style={[styles.cardValue, { color: textColor }]}>
-          {insights.totalLoggedValue}
-        </Text>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: cardColor }]}>
-        <Text style={[styles.cardTitle, { color: subTextColor }]}>
-          Logged Value by Habit
-        </Text>
+      {/* Inspired by: https://reactnativecomponents.com/components/card */}
+      <View style={[sharedStyles.card, styles.chartCard]}>
+        <Text style={sharedStyles.sectionTitle}>Logged Value by Habit</Text>
 
         {insights.chartData.length === 0 ? (
-          <Text style={[styles.emptyText, { color: subTextColor }]}>
-            No chart data available yet
-          </Text>
+          <Text style={sharedStyles.emptyText}>No chart data available yet</Text>
         ) : (
           insights.chartData.map((item) => {
             const barWidth = `${(item.totalValue / maxValue) * 100}%` as `${number}%`;
 
             return (
               <View key={item.habitName} style={styles.chartRow}>
-                <Text style={[styles.chartLabel, { color: textColor }]}>
-                  {item.habitName}
-                </Text>
+                <Text style={[styles.chartLabel, { color: palette.text }]}>{item.habitName}</Text>
+                {/* Inspired by: https://reactnativecomponents.com/components/progress */}
                 <View
                   style={[
                     styles.barBackground,
@@ -137,9 +124,7 @@ export default function InsightsScreen() {
                 >
                   <View style={[styles.barFill, { width: barWidth }]} />
                 </View>
-                <Text style={[styles.chartValue, { color: subTextColor }]}>
-                  {item.totalValue}
-                </Text>
+                <Text style={[styles.chartValue, { color: palette.textMuted }]}>{item.totalValue}</Text>
               </View>
             );
           })
@@ -151,34 +136,26 @@ export default function InsightsScreen() {
 
 // Simple styling for summary cards and chart bars
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    flexGrow: 1,
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 6,
+  statCard: {
+    width: '48%',
+    minHeight: 120,
+    justifyContent: 'space-between',
   },
-  subtitle: {
-    fontSize: 15,
-    marginBottom: 20,
-  },
-  card: {
-    padding: 18,
-    borderRadius: 10,
-    marginBottom: 14,
+  chartCard: {
+    marginTop: spacing.sm,
   },
   cardTitle: {
-    fontSize: 16,
-    marginBottom: 8,
+    fontSize: 14,
+    marginBottom: 6,
   },
   cardValue: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: 'bold',
-  },
-  emptyText: {
-    marginTop: 8,
   },
   chartRow: {
     marginTop: 12,

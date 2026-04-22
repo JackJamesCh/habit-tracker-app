@@ -12,6 +12,8 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { categories } from '../../db/schema';
 import { useAppTheme } from '../../components/theme-context';
+import { getPalette, spacing } from '../../constants/design-system';
+import { createSharedStyles } from '../../components/ui/shared-styles';
 
 type CategoryItem = {
   id: number;
@@ -27,14 +29,10 @@ export default function CategoriesScreen() {
   const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const { isDark } = useAppTheme();
+  const palette = getPalette(isDark);
+  const sharedStyles = createSharedStyles(palette, isDark);
 
-  const backgroundColor = isDark ? '#111827' : '#f5f5f5';
-  const cardColor = isDark ? '#1f2937' : '#ffffff';
-  const textColor = isDark ? '#f9fafb' : '#000000';
-  const subTextColor = isDark ? '#d1d5db' : '#555555';
-  const inputColor = isDark ? '#1f2937' : '#ffffff';
-  const borderColor = isDark ? '#374151' : '#bbb';
-  const selectedCircleBorder = isDark ? '#f9fafb' : '#111827';
+  const selectedCircleBorder = palette.text;
 
   const colorOptions = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
 
@@ -95,88 +93,86 @@ export default function CategoriesScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
-      <Text style={[styles.title, { color: textColor }]}>Categories</Text>
-      <Text style={[styles.subtitle, { color: subTextColor }]}>
-        Create and manage habit categories
-      </Text>
-
-      <TextInput
-        style={[
-          styles.input,
-          {
-            backgroundColor: inputColor,
-            borderColor,
-            color: textColor,
-          },
-        ]}
-        placeholder="Category name"
-        placeholderTextColor={isDark ? '#9ca3af' : '#6b7280'}
-        value={categoryName}
-        onChangeText={setCategoryName}
-      />
-
-      <Text style={[styles.label, { color: textColor }]}>Choose a colour</Text>
-      <View style={styles.colorRow}>
-        {colorOptions.map((color) => (
-          <TouchableOpacity
-            key={color}
-            style={[
-              styles.colorCircle,
-              { backgroundColor: color },
-              selectedColor === color && {
-                borderWidth: 3,
-                borderColor: selectedCircleBorder,
-              },
-            ]}
-            onPress={() => setSelectedColor(color)}
-          />
-        ))}
-      </View>
-
-      <TouchableOpacity style={styles.saveButton} onPress={saveCategory}>
-        <Text style={styles.saveButtonText}>
-          {editingCategoryId !== null ? 'Update Category' : 'Add Category'}
-        </Text>
-      </TouchableOpacity>
-
-      {editingCategoryId !== null ? (
-        <TouchableOpacity style={styles.cancelButton} onPress={resetForm}>
-          <Text style={styles.cancelButtonText}>Cancel Edit</Text>
-        </TouchableOpacity>
-      ) : null}
-
-      <Text style={[styles.listTitle, { color: textColor }]}>Saved Categories</Text>
-
+    <View style={sharedStyles.screen}>
       <FlatList
         data={categoryList}
         keyExtractor={(item) => item.id.toString()}
-        ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: subTextColor }]}>
-            No categories added yet
-          </Text>
-        }
-        renderItem={({ item }) => (
-          <View style={[styles.card, { backgroundColor: cardColor }]}>
-            <View style={styles.cardTopRow}>
-              <View style={[styles.colorPreview, { backgroundColor: item.color }]} />
-              <Text style={[styles.cardTitle, { color: textColor }]}>{item.name}</Text>
+        ListHeaderComponent={
+          <View style={sharedStyles.screenContent}>
+            <Text style={sharedStyles.title}>Categories</Text>
+            <Text style={sharedStyles.subtitle}>Create and manage habit categories</Text>
+
+            {/* Inspired by: https://reactnativecomponents.com/components/card */}
+            <View style={sharedStyles.card}>
+              <TextInput
+                style={sharedStyles.input}
+                placeholder="Category name"
+                placeholderTextColor={palette.textMuted}
+                value={categoryName}
+                onChangeText={setCategoryName}
+              />
+
+              <Text style={sharedStyles.fieldLabel}>Choose a colour</Text>
+              <View style={styles.colorRow}>
+                {colorOptions.map((color) => (
+                  <TouchableOpacity
+                    key={color}
+                    style={[
+                      styles.colorCircle,
+                      { backgroundColor: color },
+                      selectedColor === color && {
+                        borderWidth: 3,
+                        borderColor: selectedCircleBorder,
+                      },
+                    ]}
+                    onPress={() => setSelectedColor(color)}
+                  />
+                ))}
+              </View>
+
+              {/* Inspired by: https://reactnativecomponents.com/components/button */}
+              <TouchableOpacity style={sharedStyles.primaryButton} onPress={saveCategory}>
+                <Text style={sharedStyles.buttonTextPrimary}>
+                  {editingCategoryId !== null ? 'Update Category' : 'Add Category'}
+                </Text>
+              </TouchableOpacity>
+
+              {editingCategoryId !== null ? (
+                <TouchableOpacity style={[sharedStyles.secondaryButton, styles.cancelButton]} onPress={resetForm}>
+                  <Text style={sharedStyles.buttonTextSecondary}>Cancel Edit</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
 
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={() => startEditing(item)}
-              >
-                <Text style={styles.actionButtonText}>Edit</Text>
-              </TouchableOpacity>
+            <Text style={sharedStyles.sectionTitle}>Saved Categories</Text>
+          </View>
+        }
+        ListEmptyComponent={
+          <Text style={[sharedStyles.emptyText, styles.emptyText]}>No categories added yet</Text>
+        }
+        renderItem={({ item }) => (
+          <View style={styles.itemWrapper}>
+            <View style={sharedStyles.card}>
+              <View style={styles.cardTopRow}>
+                <View style={[styles.colorPreview, { backgroundColor: item.color }]} />
+                <Text style={[styles.cardTitle, { color: palette.text }]}>{item.name}</Text>
+              </View>
 
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => deleteCategory(item.id)}
-              >
-                <Text style={styles.actionButtonText}>Delete</Text>
-              </TouchableOpacity>
+              <View style={sharedStyles.inlineActions}>
+                <TouchableOpacity
+                  style={[sharedStyles.secondaryButton, styles.actionButton]}
+                  onPress={() => startEditing(item)}
+                >
+                  <Text style={sharedStyles.buttonTextSecondary}>Edit</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[sharedStyles.dangerButton, styles.actionButton]}
+                  onPress={() => deleteCategory(item.id)}
+                >
+                  <Text style={sharedStyles.buttonTextDanger}>Delete</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         )}
@@ -186,29 +182,6 @@ export default function CategoriesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 15,
-    marginBottom: 20,
-  },
-  input: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 14,
-    borderWidth: 1,
-  },
-  label: {
-    fontWeight: '600',
-    marginBottom: 10,
-  },
   colorRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -221,40 +194,14 @@ const styles = StyleSheet.create({
     marginRight: 10,
     marginBottom: 10,
   },
-  saveButton: {
-    backgroundColor: '#000',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
   cancelButton: {
-    backgroundColor: '#9ca3af',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  cancelButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  listTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    marginTop: spacing.sm,
   },
   emptyText: {
-    marginTop: 6,
+    marginHorizontal: spacing.xl,
   },
-  card: {
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 12,
+  itemWrapper: {
+    paddingHorizontal: spacing.xl,
   },
   cardTopRow: {
     flexDirection: 'row',
@@ -271,24 +218,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
   },
-  actionRow: {
-    flexDirection: 'row',
-  },
-  editButton: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    marginRight: 10,
-  },
-  deleteButton: {
-    backgroundColor: '#dc2626',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontWeight: '600',
+  actionButton: {
+    flex: 1,
   },
 });

@@ -1,18 +1,78 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppTheme } from '@/components/theme-context';
+import { getPalette } from '@/constants/design-system';
+
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { isDark } = useAppTheme();
+  const palette = getPalette(isDark);
+
+  // Icon mapping requested for each tab, using outline (inactive) and filled (active) variants.
+  const getTabIconName = (
+    route: 'habits' | 'logs' | 'targets' | 'insights' | 'account' | 'categories',
+    focused: boolean
+  ): IoniconName => {
+    const icons: Record<typeof route, { active: IoniconName; inactive: IoniconName }> = {
+      habits: { inactive: 'home-outline', active: 'home' },
+      logs: { inactive: 'list-outline', active: 'list' },
+      targets: { inactive: 'flag-outline', active: 'flag' },
+      insights: { inactive: 'bar-chart-outline', active: 'bar-chart' },
+      account: { inactive: 'person-outline', active: 'person' },
+      categories: { inactive: 'grid-outline', active: 'grid' },
+    };
+
+    return focused ? icons[route].active : icons[route].inactive;
+  };
+
+  // Active/inactive tab behavior:
+  // - Active uses primary color + slightly larger icon + bold label
+  // - Inactive uses muted theme color
+  const renderTabLabel = (label: string) =>
+    ({ focused, color }: { focused: boolean; color: string }) => (
+      <Text
+        style={{
+          color,
+          fontSize: 11,
+          fontWeight: focused ? '700' : '500',
+          marginTop: 2,
+        }}
+      >
+        {label}
+      </Text>
+    );
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        // Styling reference requested by user:
+        // https://reactnativecomponents.com/components/tab
+        tabBarActiveTintColor: palette.primary,
+        tabBarInactiveTintColor: palette.textMuted,
+        tabBarStyle: {
+          backgroundColor: palette.tabBarBackground,
+          borderTopWidth: 0,
+          height: 76,
+          paddingTop: 6,
+          paddingBottom: 10,
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: isDark ? 0.2 : 0.08,
+          shadowRadius: 8,
+        },
+        tabBarItemStyle: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingVertical: 2,
+        },
         headerShown: false,
         tabBarButton: HapticTab,
       }}
@@ -21,8 +81,14 @@ export default function TabLayout() {
         name="habits"
         options={{
           title: 'Habits',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+          tabBarLabel: renderTabLabel('Habits'),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              size={focused ? 26 : 22}
+              name={getTabIconName('habits', focused)}
+              color={color}
+              style={{ marginTop: 2 }}
+            />
           ),
         }}
       />
@@ -31,8 +97,14 @@ export default function TabLayout() {
         name="logs"
         options={{
           title: 'Logs',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
+          tabBarLabel: renderTabLabel('Logs'),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              size={focused ? 26 : 22}
+              name={getTabIconName('logs', focused)}
+              color={color}
+              style={{ marginTop: 2 }}
+            />
           ),
         }}
       />
@@ -41,8 +113,14 @@ export default function TabLayout() {
         name="targets"
         options={{
           title: 'Targets',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="target" color={color} />
+          tabBarLabel: renderTabLabel('Targets'),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              size={focused ? 26 : 22}
+              name={getTabIconName('targets', focused)}
+              color={color}
+              style={{ marginTop: 2 }}
+            />
           ),
         }}
       />
@@ -51,8 +129,14 @@ export default function TabLayout() {
         name="insights"
         options={{
           title: 'Insights',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="chart.bar.fill" color={color} />
+          tabBarLabel: renderTabLabel('Insights'),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              size={focused ? 26 : 22}
+              name={getTabIconName('insights', focused)}
+              color={color}
+              style={{ marginTop: 2 }}
+            />
           ),
         }}
       />
@@ -61,8 +145,14 @@ export default function TabLayout() {
         name="account"
         options={{
           title: 'Account',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="person.fill" color={color} />
+          tabBarLabel: renderTabLabel('Account'),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              size={focused ? 26 : 22}
+              name={getTabIconName('account', focused)}
+              color={color}
+              style={{ marginTop: 2 }}
+            />
           ),
         }}
       />
@@ -71,8 +161,14 @@ export default function TabLayout() {
         name="categories"
         options={{
           title: 'Categories',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="square.grid.2x2.fill" color={color} />
+          tabBarLabel: renderTabLabel('Categories'),
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              size={focused ? 26 : 22}
+              name={getTabIconName('categories', focused)}
+              color={color}
+              style={{ marginTop: 2 }}
+            />
           ),
         }}
       />
