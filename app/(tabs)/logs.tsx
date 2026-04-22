@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { habitLogs, habits } from '../../db/schema';
 
@@ -111,6 +112,13 @@ export default function LogsScreen() {
     setDate('');
     setValue('');
     setNotes('');
+    await loadData();
+  };
+
+  // Deletes one log from the database using its id
+  // This helps the user remove mistakes from the log list
+  const deleteLog = async (logId: number) => {
+    await db.delete(habitLogs).where(eq(habitLogs.id, logId));
     await loadData();
   };
 
@@ -271,6 +279,13 @@ export default function LogsScreen() {
             {item.notes ? (
               <Text style={styles.cardText}>Notes: {item.notes}</Text>
             ) : null}
+
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => deleteLog(item.id)}
+            >
+              <Text style={styles.deleteButtonText}>Delete Log</Text>
+            </TouchableOpacity>
           </View>
         )}
         contentContainerStyle={styles.logsListContent}
@@ -367,6 +382,17 @@ const styles = StyleSheet.create({
   },
   cardText: {
     marginBottom: 2,
+  },
+  deleteButton: {
+    backgroundColor: '#dc2626',
+    marginTop: 10,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   logsListContent: {
     paddingBottom: 30,
