@@ -17,22 +17,22 @@ import { getPalette, spacing } from '../../constants/design-system';
 import { createSharedStyles } from '../../components/ui/shared-styles';
 import { getCurrentUser } from '../../db/auth';
 
-// Type for habits shown as selectable buttons
-type HabitItem = {
-  id: number;
-  name: string;
-  type: 'completed' | 'count-based';
-};
+    // Type for habits shown as selectable buttons
+    type HabitItem = {
+      id: number;
+      name: string;
+      type: 'completed' | 'count-based';
+    };
 
-// Type for logs displayed on screen
-type LogItem = {
-  id: number;
-  habitId: number;
-  habitName: string;
-  date: string;
-  value: number;
-  notes: string | null;
-};
+    // Type for logs displayed on screen
+    type LogItem = {
+      id: number;
+      habitId: number;
+      habitName: string;
+      date: string;
+      value: number;
+      notes: string | null;
+    };
 
 export default function LogsScreen() {
   // Keep form state, list data and filters together so this tab is easy to reason about.
@@ -56,13 +56,13 @@ export default function LogsScreen() {
 
   const buttonTextColor = palette.text;
 
-  // Reload on focus so newly added logs from other flows show up right away.
-  // Reference: https://reactnavigation.org/docs/use-focus-effect
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [])
-  );
+    // Reload on focus so newly added logs from other flows show up right away.
+    // Reference: https://reactnavigation.org/docs/use-focus-effect
+    useFocusEffect(
+      useCallback(() => {
+        loadData();
+      }, [])
+    );
 
   // One loader keeps habits and logs in sync for both forms and filter chips.
   const loadData = async () => {

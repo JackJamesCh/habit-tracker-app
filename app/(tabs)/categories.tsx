@@ -16,11 +16,11 @@ import { getPalette, spacing } from '../../constants/design-system';
 import { createSharedStyles } from '../../components/ui/shared-styles';
 import { getCurrentUser } from '../../db/auth';
 
-type CategoryItem = {
-  id: number;
-  name: string;
-  color: string;
-};
+    type CategoryItem = {
+      id: number;
+      name: string;
+      color: string;
+    };
 
 export default function CategoriesScreen() {
   // Keep form + list state together so adding and editing categories stays in one flow.
@@ -38,13 +38,13 @@ export default function CategoriesScreen() {
 
   const colorOptions = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
 
-  // Reload when tab is focused so any DB changes are reflected right away.
-  // Reference: https://reactnavigation.org/docs/use-focus-effect
-  useFocusEffect(
-    useCallback(() => {
-      loadCategories();
-    }, [])
-  );
+      // Reload when tab is focused so any DB changes are reflected right away.
+      // Reference: https://reactnavigation.org/docs/use-focus-effect
+      useFocusEffect(
+        useCallback(() => {
+          loadCategories();
+        }, [])
+      );
 
   // Local DB read keeps this list fast and available offline.
   const loadCategories = async () => {
@@ -63,11 +63,11 @@ export default function CategoriesScreen() {
     setCategoryList(savedCategories);
   };
 
-  // Reusing one form for add/edit avoids extra navigation and keeps this screen simple.
-  const saveCategory = async () => {
-    if (!categoryName.trim()) return;
+      // Reusing one form for add/edit avoids extra navigation and keeps this screen simple.
+      const saveCategory = async () => {
+        if (!categoryName.trim()) return;
 
-    const currentUser = await getCurrentUser();
+        const currentUser = await getCurrentUser();
 
     if (!currentUser) {
       return;

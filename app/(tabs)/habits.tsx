@@ -16,22 +16,22 @@ import { getPalette, spacing } from '../../constants/design-system';
 import { createSharedStyles } from '../../components/ui/shared-styles';
 import { getCurrentUser } from '../../db/auth';
 
-// This type is used for the habits shown on screen
-type HabitItem = {
-  id: number;
-  name: string;
-  categoryId: number;
-  categoryName: string;
-  categoryColor: string;
-  type: 'completed' | 'count-based';
-};
+    // This type is used for the habits shown on screen
+    type HabitItem = {
+      id: number;
+      name: string;
+      categoryId: number;
+      categoryName: string;
+      categoryColor: string;
+      type: 'completed' | 'count-based';
+    };
 
-// This type is used for category buttons
-type CategoryItem = {
-  id: number;
-  name: string;
-  color: string;
-};
+    // This type is used for category buttons
+    type CategoryItem = {
+      id: number;
+      name: string;
+      color: string;
+    };
 
 export default function HabitsScreen() {
   // Form/edit state and list data live together here so this tab stays self contained.
@@ -49,13 +49,13 @@ export default function HabitsScreen() {
 
   const buttonTextColor = palette.text;
 
-  // Reload when tab regains focus so edits made elsewhere show up immediately.
-  // Reference: https://reactnavigation.org/docs/use-focus-effect
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [])
-  );
+      // Reload when tab regains focus so edits made elsewhere show up immediately.
+      // Reference: https://reactnavigation.org/docs/use-focus-effect
+      useFocusEffect(
+        useCallback(() => {
+          loadData();
+        }, [])
+      );
 
   // Pull both tables here so habit rows can also show category name/color.
   const loadData = async () => {
@@ -140,24 +140,24 @@ export default function HabitsScreen() {
     await loadData();
   };
 
-  // Delete and then refresh so the list always reflects SQLite right away.
-  const deleteHabit = async (habitId: number) => {
-    const currentUser = await getCurrentUser();
+      // Delete and then refresh so the list always reflects SQLite right away.
+      const deleteHabit = async (habitId: number) => {
+        const currentUser = await getCurrentUser();
 
-    if (!currentUser) {
-      return;
-    }
+        if (!currentUser) {
+          return;
+        }
 
-    await db
-      .delete(habits)
-      .where(and(eq(habits.id, habitId), eq(habits.userId, currentUser.id)));
+        await db
+          .delete(habits)
+          .where(and(eq(habits.id, habitId), eq(habits.userId, currentUser.id)));
 
-    if (editingHabitId === habitId) {
-      clearHabitForm();
-    }
+        if (editingHabitId === habitId) {
+          clearHabitForm();
+        }
 
-    await loadData();
-  };
+        await loadData();
+      };
 
   // Prefill current values so updates feel like editing and not starting over.
   const startEditingHabit = (habit: HabitItem) => {
@@ -315,43 +315,43 @@ export default function HabitsScreen() {
   );
 }
 
-// Basic screen styling for layout and spacing
-const styles = StyleSheet.create({
-  itemWrapper: {
-    paddingHorizontal: spacing.xl,
-  },
-  card: {
-    marginBottom: spacing.sm,
-  },
-  cardTitle: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  cardText: {
-    marginBottom: 2,
-  },
-  actionButton: {
-    flex: 1,
-  },
-  secondaryAction: {
-    marginTop: spacing.sm,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  categoryDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-  emptyPad: {
-    marginHorizontal: spacing.xl,
-  },
-  listContent: {
-    paddingBottom: spacing.xl,
-  },
-});
+    // Basic screen styling for layout and spacing
+    const styles = StyleSheet.create({
+      itemWrapper: {
+        paddingHorizontal: spacing.xl,
+      },
+      card: {
+        marginBottom: spacing.sm,
+      },
+      cardTitle: {
+        fontWeight: 'bold',
+        fontSize: 16,
+        marginBottom: 4,
+      },
+      cardText: {
+        marginBottom: 2,
+      },
+      actionButton: {
+        flex: 1,
+      },
+      secondaryAction: {
+        marginTop: spacing.sm,
+      },
+      cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 6,
+      },
+      categoryDot: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        marginRight: 8,
+      },
+      emptyPad: {
+        marginHorizontal: spacing.xl,
+      },
+      listContent: {
+        paddingBottom: spacing.xl,
+      },
+    });

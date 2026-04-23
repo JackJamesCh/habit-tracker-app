@@ -10,23 +10,23 @@ import { getPalette } from '@/constants/design-system';
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 export default function TabLayout() {
-  // Tabs read from theme context so icon/text colors match light and dark mode everywhere.
-  const { isDark } = useAppTheme();
-  const palette = getPalette(isDark);
+      // Tabs read from theme context so icon/text colors match light and dark mode everywhere.
+      const { isDark } = useAppTheme();
+      const palette = getPalette(isDark);
 
   // Keep icon names in one lookup so each tab stays consistent and easy to tweak later.
   const getTabIconName = (
     route: 'habits' | 'logs' | 'targets' | 'insights' | 'account' | 'categories',
     focused: boolean
   ): IoniconName => {
-    const icons: Record<typeof route, { active: IoniconName; inactive: IoniconName }> = {
-      habits: { inactive: 'home-outline', active: 'home' },
-      logs: { inactive: 'list-outline', active: 'list' },
-      targets: { inactive: 'flag-outline', active: 'flag' },
-      insights: { inactive: 'bar-chart-outline', active: 'bar-chart' },
-      account: { inactive: 'person-outline', active: 'person' },
-      categories: { inactive: 'grid-outline', active: 'grid' },
-    };
+          const icons: Record<typeof route, { active: IoniconName; inactive: IoniconName }> = {
+            habits: { inactive: 'home-outline', active: 'home' },
+            logs: { inactive: 'list-outline', active: 'list' },
+            targets: { inactive: 'flag-outline', active: 'flag' },
+            insights: { inactive: 'bar-chart-outline', active: 'bar-chart' },
+            account: { inactive: 'person-outline', active: 'person' },
+            categories: { inactive: 'grid-outline', active: 'grid' },
+          };
 
     return focused ? icons[route].active : icons[route].inactive;
   };

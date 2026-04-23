@@ -22,20 +22,20 @@ type InsightsData = {
   chartData: HabitChartItem[];
 };
 
-export default function InsightsScreen() {
-  // Keep summary stats and chart rows in one state object since they come from the same DB load.
-  const [insights, setInsights] = useState<InsightsData>({
-    totalHabits: 0,
-    totalLogs: 0,
-    totalTargets: 0,
-    totalLoggedValue: 0,
-    chartData: [],
-  });
-  const { isDark } = useAppTheme();
-  const palette = getPalette(isDark);
-  const sharedStyles = createSharedStyles(palette, isDark);
+    export default function InsightsScreen() {
+      // Keep summary stats and chart rows in one state object since they come from the same DB load.
+      const [insights, setInsights] = useState<InsightsData>({
+        totalHabits: 0,
+        totalLogs: 0,
+        totalTargets: 0,
+        totalLoggedValue: 0,
+        chartData: [],
+      });
+      const { isDark } = useAppTheme();
+      const palette = getPalette(isDark);
+      const sharedStyles = createSharedStyles(palette, isDark);
 
-  const chartBackgroundColor = palette.surfaceAlt;
+      const chartBackgroundColor = palette.surfaceAlt;
 
   // Reload on focus so this dashboard reflects latest habits/logs/targets activity.
   // Reference: https://reactnavigation.org/docs/use-focus-effect
@@ -45,20 +45,20 @@ export default function InsightsScreen() {
     }, [])
   );
 
-  // DB reads are kept together here so totals and chart values stay in sync.
-  const loadInsights = async () => {
-    const currentUser = await getCurrentUser();
+    // DB reads are kept together here so totals and chart values stay in sync.
+    const loadInsights = async () => {
+      const currentUser = await getCurrentUser();
 
-    if (!currentUser) {
-      setInsights({
-        totalHabits: 0,
-        totalLogs: 0,
-        totalTargets: 0,
-        totalLoggedValue: 0,
-        chartData: [],
-      });
-      return;
-    }
+      if (!currentUser) {
+        setInsights({
+          totalHabits: 0,
+          totalLogs: 0,
+          totalTargets: 0,
+          totalLoggedValue: 0,
+          chartData: [],
+        });
+        return;
+      }
 
     const savedHabits = await db
       .select()
@@ -162,49 +162,49 @@ export default function InsightsScreen() {
   );
 }
 
-// Simple styling for summary cards and chart bars
-const styles = StyleSheet.create({
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  statCard: {
-    width: '48%',
-    minHeight: 120,
-    justifyContent: 'space-between',
-  },
-  chartCard: {
-    marginTop: spacing.sm,
-  },
-  cardTitle: {
-    fontSize: 14,
-    marginBottom: 6,
-  },
-  cardValue: {
-    fontSize: 30,
-    fontWeight: 'bold',
-  },
-  chartRow: {
-    marginTop: 12,
-  },
-  chartLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  barBackground: {
-    height: 18,
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    backgroundColor: '#2563eb',
-    borderRadius: 6,
-  },
-  chartValue: {
-    marginTop: 4,
-    fontSize: 13,
-  },
-});
+    // Simple styling for summary cards and chart bars
+    const styles = StyleSheet.create({
+      statsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+      },
+      statCard: {
+        width: '48%',
+        minHeight: 120,
+        justifyContent: 'space-between',
+      },
+      chartCard: {
+        marginTop: spacing.sm,
+      },
+      cardTitle: {
+        fontSize: 14,
+        marginBottom: 6,
+      },
+      cardValue: {
+        fontSize: 30,
+        fontWeight: 'bold',
+      },
+      chartRow: {
+        marginTop: 12,
+      },
+      chartLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 4,
+      },
+      barBackground: {
+        height: 18,
+        borderRadius: 6,
+        overflow: 'hidden',
+      },
+      barFill: {
+        height: '100%',
+        backgroundColor: '#2563eb',
+        borderRadius: 6,
+      },
+      chartValue: {
+        marginTop: 4,
+        fontSize: 13,
+      },
+    });
