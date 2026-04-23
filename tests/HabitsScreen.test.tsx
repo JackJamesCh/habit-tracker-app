@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import HabitsScreen from '../app/(tabs)/habits';
 import { db } from '../db/client';
+import { getCurrentUser } from '../db/auth';
 import { categories, habits } from '../db/schema';
 
 // Mock DB calls so the test focuses on screen behavior, not SQLite integration details.
@@ -12,6 +13,10 @@ jest.mock('../db/client', () => ({
     insert: jest.fn(),
     delete: jest.fn(),
   },
+}));
+
+jest.mock('../db/auth', () => ({
+  getCurrentUser: jest.fn(),
 }));
 
 jest.mock('expo-router', () => ({
@@ -47,6 +52,8 @@ const mockDb = db as unknown as {
   delete: jest.Mock;
 };
 
+const mockGetCurrentUser = getCurrentUser as jest.Mock;
+
 describe('HabitsScreen', () => {
   beforeEach(() => {
     // Reset mock history to keep each test independent.
@@ -55,6 +62,8 @@ describe('HabitsScreen', () => {
 
   it('inserts a habit and shows it in the list after pressing Add Habit', async () => {
     // This proves the full add flow: load categories, submit form, insert, then refresh list.
+    mockGetCurrentUser.mockResolvedValue({ id: 77, email: 'test@example.com' });
+
     const initialCategories = [{ id: 1, name: 'Fitness', color: '#3b82f6' }];
     const initialHabits: Array<{
       id: number;
@@ -71,10 +80,15 @@ describe('HabitsScreen', () => {
       },
     ];
 
-    const fromCategoriesFirstLoad = jest.fn().mockResolvedValue(initialCategories);
-    const fromHabitsFirstLoad = jest.fn().mockResolvedValue(initialHabits);
-    const fromCategoriesSecondLoad = jest.fn().mockResolvedValue(initialCategories);
-    const fromHabitsSecondLoad = jest.fn().mockResolvedValue(updatedHabits);
+    const whereCategoriesFirstLoad = jest.fn().mockResolvedValue(initialCategories);
+    const whereHabitsFirstLoad = jest.fn().mockResolvedValue(initialHabits);
+    const whereCategoriesSecondLoad = jest.fn().mockResolvedValue(initialCategories);
+    const whereHabitsSecondLoad = jest.fn().mockResolvedValue(updatedHabits);
+
+    const fromCategoriesFirstLoad = jest.fn().mockReturnValue({ where: whereCategoriesFirstLoad });
+    const fromHabitsFirstLoad = jest.fn().mockReturnValue({ where: whereHabitsFirstLoad });
+    const fromCategoriesSecondLoad = jest.fn().mockReturnValue({ where: whereCategoriesSecondLoad });
+    const fromHabitsSecondLoad = jest.fn().mockReturnValue({ where: whereHabitsSecondLoad });
 
     const mockValues = jest.fn().mockResolvedValue(undefined);
 
@@ -102,6 +116,7 @@ describe('HabitsScreen', () => {
     });
 
     expect(mockValues).toHaveBeenCalledWith({
+      userId: 77,
       name: 'Morning Run',
       categoryId: 1,
       type: 'completed',

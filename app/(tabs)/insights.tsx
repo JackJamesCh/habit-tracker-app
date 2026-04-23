@@ -1,11 +1,13 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { habitLogs, habits, targets } from '../../db/schema';
 import { useAppTheme } from '../../components/theme-context';
 import { getPalette, spacing } from '../../constants/design-system';
 import { createSharedStyles } from '../../components/ui/shared-styles';
+import { getCurrentUser } from '../../db/auth';
 
 type HabitChartItem = {
   habitName: string;
@@ -45,9 +47,31 @@ export default function InsightsScreen() {
 
   // DB reads are kept together here so totals and chart values stay in sync.
   const loadInsights = async () => {
-    const savedHabits = await db.select().from(habits);
-    const savedLogs = await db.select().from(habitLogs);
-    const savedTargets = await db.select().from(targets);
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      setInsights({
+        totalHabits: 0,
+        totalLogs: 0,
+        totalTargets: 0,
+        totalLoggedValue: 0,
+        chartData: [],
+      });
+      return;
+    }
+
+    const savedHabits = await db
+      .select()
+      .from(habits)
+      .where(eq(habits.userId, currentUser.id));
+    const savedLogs = await db
+      .select()
+      .from(habitLogs)
+      .where(eq(habitLogs.userId, currentUser.id));
+    const savedTargets = await db
+      .select()
+      .from(targets)
+      .where(eq(targets.userId, currentUser.id));
 
     const totalLoggedValue = savedLogs.reduce((sum, log) => sum + log.value, 0);
 

@@ -8,13 +8,14 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { habitLogs, habits, targets } from '../../db/schema';
 import { createTarget } from '../../db/targets';
 import { useAppTheme } from '../../components/theme-context';
 import { getPalette, spacing } from '../../constants/design-system';
 import { createSharedStyles } from '../../components/ui/shared-styles';
+import { getCurrentUser } from '../../db/auth';
 
 // Type for habits shown in the target form
 type HabitItem = {
@@ -59,9 +60,27 @@ export default function TargetsScreen() {
 
   // We load habits, targets and logs together because target progress depends on all three.
   const loadData = async () => {
-    const savedHabits = await db.select().from(habits);
-    const savedTargets = await db.select().from(targets);
-    const savedLogs = await db.select().from(habitLogs);
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      setHabitList([]);
+      setTargetList([]);
+      setSelectedHabitId(null);
+      return;
+    }
+
+    const savedHabits = await db
+      .select()
+      .from(habits)
+      .where(eq(habits.userId, currentUser.id));
+    const savedTargets = await db
+      .select()
+      .from(targets)
+      .where(eq(targets.userId, currentUser.id));
+    const savedLogs = await db
+      .select()
+      .from(habitLogs)
+      .where(eq(habitLogs.userId, currentUser.id));
 
     const formattedHabits: HabitItem[] = savedHabits.map((habit) => ({
       id: habit.id,
@@ -166,7 +185,15 @@ export default function TargetsScreen() {
 
   // Delete + reload keeps the saved target list honest after changes.
   const deleteTarget = async (targetId: number) => {
-    await db.delete(targets).where(eq(targets.id, targetId));
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return;
+    }
+
+    await db
+      .delete(targets)
+      .where(and(eq(targets.id, targetId), eq(targets.userId, currentUser.id)));
     await loadData();
   };
 

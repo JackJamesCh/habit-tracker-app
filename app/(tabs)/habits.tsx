@@ -9,11 +9,12 @@ import {
 } from 'react-native';
 import { db } from '../../db/client';
 import { categories, habits } from '../../db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAppTheme } from '../../components/theme-context';
 import { getPalette, spacing } from '../../constants/design-system';
 import { createSharedStyles } from '../../components/ui/shared-styles';
+import { getCurrentUser } from '../../db/auth';
 
 // This type is used for the habits shown on screen
 type HabitItem = {
@@ -58,8 +59,23 @@ export default function HabitsScreen() {
 
   // Pull both tables here so habit rows can also show category name/color.
   const loadData = async () => {
-    const savedCategories = await db.select().from(categories);
-    const savedHabits = await db.select().from(habits);
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      setCategoryList([]);
+      setHabitList([]);
+      setSelectedCategoryId(null);
+      return;
+    }
+
+    const savedCategories = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.userId, currentUser.id));
+    const savedHabits = await db
+      .select()
+      .from(habits)
+      .where(eq(habits.userId, currentUser.id));
 
     setCategoryList(savedCategories);
 
@@ -96,6 +112,12 @@ export default function HabitsScreen() {
   const saveHabit = async () => {
     if (!habitName.trim() || selectedCategoryId === null) return;
 
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return;
+    }
+
     if (editingHabitId !== null) {
       await db
         .update(habits)
@@ -104,9 +126,10 @@ export default function HabitsScreen() {
           categoryId: selectedCategoryId,
           type: habitType,
         })
-        .where(eq(habits.id, editingHabitId));
+        .where(and(eq(habits.id, editingHabitId), eq(habits.userId, currentUser.id)));
     } else {
       await db.insert(habits).values({
+        userId: currentUser.id,
         name: habitName.trim(),
         categoryId: selectedCategoryId,
         type: habitType,
@@ -119,7 +142,15 @@ export default function HabitsScreen() {
 
   // Delete and then refresh so the list always reflects SQLite right away.
   const deleteHabit = async (habitId: number) => {
-    await db.delete(habits).where(eq(habits.id, habitId));
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return;
+    }
+
+    await db
+      .delete(habits)
+      .where(and(eq(habits.id, habitId), eq(habits.userId, currentUser.id)));
 
     if (editingHabitId === habitId) {
       clearHabitForm();

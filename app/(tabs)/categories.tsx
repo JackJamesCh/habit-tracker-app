@@ -8,12 +8,13 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { categories } from '../../db/schema';
 import { useAppTheme } from '../../components/theme-context';
 import { getPalette, spacing } from '../../constants/design-system';
 import { createSharedStyles } from '../../components/ui/shared-styles';
+import { getCurrentUser } from '../../db/auth';
 
 type CategoryItem = {
   id: number;
@@ -47,13 +48,30 @@ export default function CategoriesScreen() {
 
   // Local DB read keeps this list fast and available offline.
   const loadCategories = async () => {
-    const savedCategories = await db.select().from(categories);
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      setCategoryList([]);
+      return;
+    }
+
+    const savedCategories = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.userId, currentUser.id));
+
     setCategoryList(savedCategories);
   };
 
   // Reusing one form for add/edit avoids extra navigation and keeps this screen simple.
   const saveCategory = async () => {
     if (!categoryName.trim()) return;
+
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return;
+    }
 
     if (editingCategoryId !== null) {
       await db
@@ -62,9 +80,12 @@ export default function CategoriesScreen() {
           name: categoryName.trim(),
           color: selectedColor,
         })
-        .where(eq(categories.id, editingCategoryId));
+        .where(
+          and(eq(categories.id, editingCategoryId), eq(categories.userId, currentUser.id))
+        );
     } else {
       await db.insert(categories).values({
+        userId: currentUser.id,
         name: categoryName.trim(),
         color: selectedColor,
       });
@@ -90,7 +111,16 @@ export default function CategoriesScreen() {
 
   // Delete then reload ensures stale category rows don't hang around in UI.
   const deleteCategory = async (categoryId: number) => {
-    await db.delete(categories).where(eq(categories.id, categoryId));
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return;
+    }
+
+    await db
+      .delete(categories)
+      .where(and(eq(categories.id, categoryId), eq(categories.userId, currentUser.id)));
+
     await loadCategories();
 
     if (editingCategoryId === categoryId) {

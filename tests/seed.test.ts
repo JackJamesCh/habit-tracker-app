@@ -1,5 +1,6 @@
 import { seedDatabase } from '../db/seed';
 import { db } from '../db/client';
+import { getCurrentUser } from '../db/auth';
 import { categories } from '../db/schema';
 
 // DB is mocked so this test checks seed behavior without touching real SQLite.
@@ -11,7 +12,12 @@ jest.mock('../db/client', () => ({
   },
 }));
 
+jest.mock('../db/auth', () => ({
+  getCurrentUser: jest.fn(),
+}));
+
 const mockDb = db as unknown as { select: jest.Mock; insert: jest.Mock };
+const mockGetCurrentUser = getCurrentUser as jest.Mock;
 
 describe('seedDatabase', () => {
   beforeEach(() => {
@@ -20,15 +26,18 @@ describe('seedDatabase', () => {
   });
 
   it('inserts seed data when tables are empty', async () => {
+    mockGetCurrentUser.mockResolvedValue({ id: 7, email: 'test@example.com' });
+
     // First read = empty categories, second read = categories after seed insert.
-    const mockFrom = jest
+    const mockWhere = jest
       .fn()
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
-        { id: 1, name: 'Fitness', color: '#3b82f6' },
-        { id: 2, name: 'Learning', color: '#8b5cf6' },
-        { id: 3, name: 'Health', color: '#10b981' },
+        { id: 1, userId: 7, name: 'Fitness', color: '#3b82f6' },
+        { id: 2, userId: 7, name: 'Learning', color: '#8b5cf6' },
+        { id: 3, userId: 7, name: 'Health', color: '#10b981' },
       ]);
+    const mockFrom = jest.fn().mockReturnValue({ where: mockWhere });
 
     const mockValues = jest.fn().mockResolvedValue(undefined);
 
@@ -44,10 +53,13 @@ describe('seedDatabase', () => {
   });
 
   it('does not insert data when categories already exist', async () => {
+    mockGetCurrentUser.mockResolvedValue({ id: 7, email: 'test@example.com' });
+
     // Existing categories should short circuit seed to avoid duplicate starter rows.
-    const mockFrom = jest.fn().mockResolvedValue([
-      { id: 1, name: 'Existing', color: '#111111' },
+    const mockWhere = jest.fn().mockResolvedValue([
+      { id: 1, userId: 7, name: 'Existing', color: '#111111' },
     ]);
+    const mockFrom = jest.fn().mockReturnValue({ where: mockWhere });
 
     mockDb.select.mockReturnValue({ from: mockFrom });
 

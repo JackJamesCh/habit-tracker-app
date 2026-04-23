@@ -9,12 +9,13 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { habitLogs, habits } from '../../db/schema';
 import { useAppTheme } from '../../components/theme-context';
 import { getPalette, spacing } from '../../constants/design-system';
 import { createSharedStyles } from '../../components/ui/shared-styles';
+import { getCurrentUser } from '../../db/auth';
 
 // Type for habits shown as selectable buttons
 type HabitItem = {
@@ -65,8 +66,23 @@ export default function LogsScreen() {
 
   // One loader keeps habits and logs in sync for both forms and filter chips.
   const loadData = async () => {
-    const savedHabits = await db.select().from(habits);
-    const savedLogs = await db.select().from(habitLogs);
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      setHabitList([]);
+      setLogList([]);
+      setSelectedHabitId(null);
+      return;
+    }
+
+    const savedHabits = await db
+      .select()
+      .from(habits)
+      .where(eq(habits.userId, currentUser.id));
+    const savedLogs = await db
+      .select()
+      .from(habitLogs)
+      .where(eq(habitLogs.userId, currentUser.id));
 
     const formattedHabits: HabitItem[] = savedHabits.map((habit) => ({
       id: habit.id,
@@ -117,6 +133,12 @@ export default function LogsScreen() {
   const saveLog = async () => {
     if (!selectedHabitId || !date.trim() || !value.trim()) return;
 
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return;
+    }
+
     const numericValue = Number(value);
 
     if (isNaN(numericValue)) return;
@@ -130,9 +152,12 @@ export default function LogsScreen() {
           value: numericValue,
           notes: notes.trim() ? notes.trim() : null,
         })
-        .where(eq(habitLogs.id, editingLogId));
+        .where(
+          and(eq(habitLogs.id, editingLogId), eq(habitLogs.userId, currentUser.id))
+        );
     } else {
       await db.insert(habitLogs).values({
+        userId: currentUser.id,
         habitId: selectedHabitId,
         date: date.trim(),
         value: numericValue,
@@ -146,7 +171,15 @@ export default function LogsScreen() {
 
   // Delete then refresh so accidental entries disappear immediately in UI.
   const deleteLog = async (logId: number) => {
-    await db.delete(habitLogs).where(eq(habitLogs.id, logId));
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return;
+    }
+
+    await db
+      .delete(habitLogs)
+      .where(and(eq(habitLogs.id, logId), eq(habitLogs.userId, currentUser.id)));
 
     if (editingLogId === logId) {
       clearLogForm();

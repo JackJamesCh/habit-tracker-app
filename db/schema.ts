@@ -3,6 +3,7 @@ import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 // Categories are separate so habits can share labels/colors without repeating data.
 export const categories = sqliteTable('categories', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull(),
   name: text('name').notNull(),
   color: text('color').notNull(),
 });
@@ -10,6 +11,7 @@ export const categories = sqliteTable('categories', {
 // Habits hold the core setup for tracking then logs/targets reference these rows.
 export const habits = sqliteTable('habits', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull(),
   name: text('name').notNull(),
   categoryId: integer('category_id').notNull(),
   type: text('type').notNull(), // completed or count-based
@@ -18,6 +20,7 @@ export const habits = sqliteTable('habits', {
 // Logs store day to day entries. This is the table used most for progress history.
 export const habitLogs = sqliteTable('habit_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull(),
   habitId: integer('habit_id').notNull(),
   date: text('date').notNull(),
   value: integer('value').notNull(),
@@ -27,6 +30,7 @@ export const habitLogs = sqliteTable('habit_logs', {
 // Targets store goal rules separately so progress can be recalculated from logs anytime.
 export const targets = sqliteTable('targets', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull(),
   habitId: integer('habit_id').notNull(),
   period: text('period').notNull(), // weekly or monthly
   targetValue: integer('target_value').notNull(),
