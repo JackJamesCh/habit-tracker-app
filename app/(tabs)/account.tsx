@@ -22,29 +22,35 @@ type CurrentUser = {
 } | null;
 
 export default function AccountScreen() {
-  // State stores the currently logged in user details
-  // The screen reloads when opened so the latest session is shown
+  // Keep current user info in state so account actions can render immediately after reloads.
   const [currentUser, setCurrentUser] = useState<CurrentUser>(null);
+
+  // Theme values are shared from context so this screen matches the rest of the app.
   const { theme, toggleTheme, isDark } = useAppTheme();
   const palette = getPalette(isDark);
   const sharedStyles = createSharedStyles(palette, isDark);
 
+  // Recheck session on focus so account details stay up to date after auth changes.
+  // Reference: https://reactnavigation.org/docs/use-focus-effect
   useFocusEffect(
     useCallback(() => {
       loadUser();
     }, [])
   );
 
+  // Pulling this from the DB keeps the screen tied to the active local session.
   const loadUser = async () => {
     const user = await getCurrentUser();
     setCurrentUser(user);
   };
 
+  // Logout only clears session and returns to login; user data stays in DB.
   const handleLogout = async () => {
     await logoutUser();
     router.replace('/login' as any);
   };
 
+  // Delete action is wrapped in confirm dialog to prevent accidental account removal.
   const handleDeleteAccount = () => {
     Alert.alert(
       'Delete Account',
@@ -70,7 +76,8 @@ export default function AccountScreen() {
     <ScrollView style={sharedStyles.screen} contentContainerStyle={sharedStyles.screenContent}>
       <Text style={sharedStyles.title}>Account</Text>
 
-      {/* Inspired by: https://reactnativecomponents.com/components/card */}
+      {/* Main profile details are separated from actions so layout is easier to scan. */}
+      {/* Styling idea inspired by: https://reactnativeelements.com/docs/components/card */}
       {currentUser ? (
         <View style={sharedStyles.card}>
           <Text style={[styles.label, { color: palette.textMuted }]}>Username</Text>
@@ -83,7 +90,8 @@ export default function AccountScreen() {
         <Text style={sharedStyles.emptyText}>No user is currently logged in.</Text>
       )}
 
-      {/* Inspired by: https://reactnativecomponents.com/components/button */}
+      {/* Account actions are grouped together since users usually do these from one place. */}
+      {/* Reference: https://callstack.github.io/react-native-paper/docs/components/Button/ */}
       <View style={sharedStyles.card}>
         <TouchableOpacity style={sharedStyles.secondaryButton} onPress={toggleTheme}>
           <Text style={sharedStyles.buttonTextSecondary}>

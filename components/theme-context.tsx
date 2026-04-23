@@ -11,11 +11,12 @@ type ThemeContextType = {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Theme state is shared across the app and loaded from SQLite
-  // This keeps the user preference saved after restarting the app
+  // Theme lives in context so every screen can read the same value without prop passing.
   const [theme, setTheme] = useState<ThemeMode>('light');
 
   useEffect(() => {
+    // Load saved theme once on mount so app opens with the user's last preference.
+    // Reference: https://react.dev/reference/react/useEffect
     const loadTheme = async () => {
       try {
         const { getSavedTheme } = await import('../db/settings');
@@ -29,6 +30,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     loadTheme();
   }, []);
 
+  // Toggle updates UI immediately then tries to persist so app still feels responsive.
   const toggleTheme = async () => {
     const newTheme: ThemeMode = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
@@ -58,6 +60,7 @@ export function useAppTheme() {
   const context = useContext(ThemeContext);
 
   if (!context) {
+    // Safe fallback avoids crashing tests/screens that render outside provider.
     return {
       theme: 'light' as const,
       toggleTheme: async () => {},

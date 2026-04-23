@@ -1,15 +1,13 @@
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-// Categories table stores the different habit categories
-// Each habit will belong to one category
+// Categories are separate so habits can share labels/colors without repeating data.
 export const categories = sqliteTable('categories', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   color: text('color').notNull(),
 });
 
-// Habits table stores the main habits created by the user
-// categoryId links each habit to a category
+// Habits hold the core setup for tracking then logs/targets reference these rows.
 export const habits = sqliteTable('habits', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
@@ -17,8 +15,7 @@ export const habits = sqliteTable('habits', {
   type: text('type').notNull(), // completed or count-based
 });
 
-// Habit logs table stores each habit activity record
-// This is the main record table required by your project
+// Logs store day to day entries. This is the table used most for progress history.
 export const habitLogs = sqliteTable('habit_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   habitId: integer('habit_id').notNull(),
@@ -27,8 +24,7 @@ export const habitLogs = sqliteTable('habit_logs', {
   notes: text('notes'),
 });
 
-// Targets table stores weekly or monthly goals for habits
-// This will be useful later for progress tracking
+// Targets store goal rules separately so progress can be recalculated from logs anytime.
 export const targets = sqliteTable('targets', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   habitId: integer('habit_id').notNull(),
@@ -40,8 +36,7 @@ export const targets = sqliteTable('targets', {
   createdAt: text('created_at').notNull(),
 });
 
-// Users table stores account details for people using the app
-// This is used for sign up and login
+// Users table supports local auth for this project without an external backend.
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   username: text('username').notNull(),
@@ -49,8 +44,7 @@ export const users = sqliteTable('users', {
   password: text('password').notNull(),
 });
 
-// Sessions table stores the currently logged in user
-// This lets the app remember login state after restart
+// Session row keeps login state simple which makes route guarding easier in Expo Router.
 export const sessions = sqliteTable('sessions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull(),
@@ -59,8 +53,7 @@ export const sessions = sqliteTable('sessions', {
     .default(true),
 });
 
-// Settings table stores simple app preferences like theme mode
-// This allows dark mode to stay saved after the app restarts
+// Settings stores small app prefs (like theme) so UI choices persist across restarts.
 export const settings = sqliteTable('settings', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   key: text('key').notNull().unique(),

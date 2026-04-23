@@ -10,10 +10,11 @@ import { getPalette } from '@/constants/design-system';
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 export default function TabLayout() {
+  // Tabs read from theme context so icon/text colors match light and dark mode everywhere.
   const { isDark } = useAppTheme();
   const palette = getPalette(isDark);
 
-  // Icon mapping requested for each tab, using outline (inactive) and filled (active) variants.
+  // Keep icon names in one lookup so each tab stays consistent and easy to tweak later.
   const getTabIconName = (
     route: 'habits' | 'logs' | 'targets' | 'insights' | 'account' | 'categories',
     focused: boolean
@@ -30,9 +31,7 @@ export default function TabLayout() {
     return focused ? icons[route].active : icons[route].inactive;
   };
 
-  // Active/inactive tab behavior:
-  // - Active uses primary color + slightly larger icon + bold label
-  // - Inactive uses muted theme color
+  // Labels also react to focus so active tabs are easier to spot quickly.
   const renderTabLabel = (label: string) =>
     ({ focused, color }: { focused: boolean; color: string }) => (
       <Text
@@ -50,8 +49,8 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        // Styling reference requested by user:
-        // https://reactnativecomponents.com/components/tab
+        // Reference: https://docs.expo.dev/router/introduction/
+        // Tab styling inspiration: https://callstack.github.io/react-native-paper/docs/components/BottomNavigation/
         tabBarActiveTintColor: palette.primary,
         tabBarInactiveTintColor: palette.textMuted,
         tabBarStyle: {

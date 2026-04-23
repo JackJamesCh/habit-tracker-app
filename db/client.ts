@@ -3,8 +3,8 @@ import { openDatabaseSync } from 'expo-sqlite';
 
 const sqlite = openDatabaseSync('habits.db');
 
-// These SQL commands create the tables if they do not already exist.
-// This makes sure the database is ready when the app starts.
+// Create tables on startup so local SQLite is ready before any screen hits the DB.
+// Reference: https://docs.expo.dev/versions/latest/sdk/sqlite/
 sqlite.execSync(`
   CREATE TABLE IF NOT EXISTS categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

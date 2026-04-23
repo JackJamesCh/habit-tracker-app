@@ -21,8 +21,7 @@ type InsightsData = {
 };
 
 export default function InsightsScreen() {
-  // State stores the dashboard summary and simple chart data
-  // The screen reloads whenever the user opens this tab
+  // Keep summary stats and chart rows in one state object since they come from the same DB load.
   const [insights, setInsights] = useState<InsightsData>({
     totalHabits: 0,
     totalLogs: 0,
@@ -36,12 +35,15 @@ export default function InsightsScreen() {
 
   const chartBackgroundColor = palette.surfaceAlt;
 
+  // Reload on focus so this dashboard reflects latest habits/logs/targets activity.
+  // Reference: https://reactnavigation.org/docs/use-focus-effect
   useFocusEffect(
     useCallback(() => {
       loadInsights();
     }, [])
   );
 
+  // DB reads are kept together here so totals and chart values stay in sync.
   const loadInsights = async () => {
     const savedHabits = await db.select().from(habits);
     const savedLogs = await db.select().from(habitLogs);
@@ -49,7 +51,7 @@ export default function InsightsScreen() {
 
     const totalLoggedValue = savedLogs.reduce((sum, log) => sum + log.value, 0);
 
-    // This groups log values by habit so they can be shown in a simple bar chart
+    // Group values by habit for a quick visual comparison without adding a full chart library.
     const chartData: HabitChartItem[] = savedHabits.map((habit) => {
       const relatedLogs = savedLogs.filter((log) => log.habitId === habit.id);
       const totalValue = relatedLogs.reduce((sum, log) => sum + log.value, 0);
@@ -79,7 +81,8 @@ export default function InsightsScreen() {
       <Text style={sharedStyles.title}>Insights</Text>
       <Text style={sharedStyles.subtitle}>Overview of your habit tracking data</Text>
 
-      {/* Inspired by: https://reactnativecomponents.com/components/card */}
+      {/* Four small summary cards make the dashboard readable at a glance. */}
+      {/* Styling idea inspired by: https://reactnativeelements.com/docs/components/card */}
       <View style={styles.statsGrid}>
         <View style={[sharedStyles.card, styles.statCard]}>
           <Text style={[styles.cardTitle, { color: palette.textMuted }]}>Total Habits</Text>
@@ -102,7 +105,7 @@ export default function InsightsScreen() {
         </View>
       </View>
 
-      {/* Inspired by: https://reactnativecomponents.com/components/card */}
+      {/* The chart area stays simple on purpose: quick trend check no heavy UI dependency. */}
       <View style={[sharedStyles.card, styles.chartCard]}>
         <Text style={sharedStyles.sectionTitle}>Logged Value by Habit</Text>
 
@@ -115,13 +118,14 @@ export default function InsightsScreen() {
             return (
               <View key={item.habitName} style={styles.chartRow}>
                 <Text style={[styles.chartLabel, { color: palette.text }]}>{item.habitName}</Text>
-                {/* Inspired by: https://reactnativecomponents.com/components/progress */}
+                {/* Inspired by: https://reactnative.dev/docs/view */}
                 <View
                   style={[
                     styles.barBackground,
                     { backgroundColor: chartBackgroundColor },
                   ]}
                 >
+                  {/* Reference: https://oss.callstack.com/react-native-paper/4.0/progress-bar.html */}
                   <View style={[styles.barFill, { width: barWidth }]} />
                 </View>
                 <Text style={[styles.chartValue, { color: palette.textMuted }]}>{item.totalValue}</Text>

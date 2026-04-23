@@ -4,6 +4,8 @@ import HabitsScreen from '../app/(tabs)/habits';
 import { db } from '../db/client';
 import { categories, habits } from '../db/schema';
 
+// Mock DB calls so the test focuses on screen behavior, not SQLite integration details.
+// Reference: https://callstack.github.io/react-native-testing-library/
 jest.mock('../db/client', () => ({
   db: {
     select: jest.fn(),
@@ -47,10 +49,12 @@ const mockDb = db as unknown as {
 
 describe('HabitsScreen', () => {
   beforeEach(() => {
+    // Reset mock history to keep each test independent.
     jest.clearAllMocks();
   });
 
   it('inserts a habit and shows it in the list after pressing Add Habit', async () => {
+    // This proves the full add flow: load categories, submit form, insert, then refresh list.
     const initialCategories = [{ id: 1, name: 'Fitness', color: '#3b82f6' }];
     const initialHabits: Array<{
       id: number;

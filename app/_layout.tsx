@@ -5,13 +5,15 @@ import { getCurrentUser } from '../db/auth';
 import { ThemeProvider } from '../components/theme-context';
 
 export default function RootLayout() {
-  // This checks whether a user is logged in when the app starts
-  // It then sends the user either to login or into the main app
+  // Keep a short loading gate while auth/session checks run so users don't see route flicker.
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const pathname = usePathname();
 
   useEffect(() => {
+    // This runs on route changes so auth redirects still work after logout/login.
+    // Reference: https://react.dev/reference/react/useEffect
     const prepareApp = async () => {
+      // Seed only fills starter rows if tables are empty.
       await seedDatabase();
 
       const currentUser = await getCurrentUser();
@@ -33,6 +35,7 @@ export default function RootLayout() {
     prepareApp();
   }, [pathname]);
 
+  // Returning null here avoids flashing the wrong stack while redirects are running.
   if (isCheckingAuth) {
     return null;
   }

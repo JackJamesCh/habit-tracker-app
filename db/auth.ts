@@ -2,8 +2,8 @@ import { eq } from 'drizzle-orm';
 import { db } from './client';
 import { sessions, users } from './schema';
 
-// Creates a new user account in the database
-// It first checks if the email is already being used
+// Sign up checks for duplicate email first so we can show a clear error before insert.
+// Reference: https://orm.drizzle.team/docs/overview
 export async function registerUser(
   username: string,
   email: string,
@@ -25,8 +25,7 @@ export async function registerUser(
   });
 }
 
-// Logs a user in if the email and password match
-// It clears old sessions and creates a new active session
+// Login uses one active local session row which keeps startup auth checks straightforward.
 export async function loginUser(email: string, password: string) {
   const matchedUsers = await db
     .select()
@@ -53,8 +52,7 @@ export async function loginUser(email: string, password: string) {
   return user;
 }
 
-// Returns the currently logged in user if a session exists
-// This is used when the app starts to check login state
+// Called on app launch and tab refreshes to map session row back to a user record.
 export async function getCurrentUser() {
   const activeSessions = await db
     .select()
@@ -79,13 +77,12 @@ export async function getCurrentUser() {
   return matchedUsers[0];
 }
 
-// Logs the user out by removing the current session
+// Logout only clears session state so account data stays available unless deleted.
 export async function logoutUser() {
   await db.delete(sessions);
 }
 
-// Deletes the current user account and clears the session
-// This is used when the user chooses to remove their profile
+// Account delete removes both user and session so the app returns to a clean login state.
 export async function deleteCurrentUser() {
   const activeUser = await getCurrentUser();
 

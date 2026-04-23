@@ -8,6 +8,7 @@ import {
   spacing,
 } from '../../constants/design-system';
 
+// Shared style factory keeps repeated screen UI consistent while still theme aware.
 export const createSharedStyles = (palette: AppPalette, isDark: boolean) =>
   StyleSheet.create({
     screen: {
@@ -29,7 +30,8 @@ export const createSharedStyles = (palette: AppPalette, isDark: boolean) =>
       color: palette.textMuted,
       marginBottom: spacing.lg,
     },
-    // Inspired by: https://reactnativecomponents.com/components/card
+    // Reference: https://reactnative.dev/docs/stylesheet
+    // Card idea inspired by: https://reactnativeelements.com/docs/components/card
     card: {
       backgroundColor: palette.surface,
       borderRadius: radius.lg,
@@ -51,7 +53,7 @@ export const createSharedStyles = (palette: AppPalette, isDark: boolean) =>
       color: palette.text,
       marginBottom: spacing.xs,
     },
-    // Inspired by: https://reactnativecomponents.com/components/input
+    // Input reference: https://reactnative.dev/docs/textinput
     input: {
       height: inputHeight,
       borderRadius: radius.md,
@@ -67,7 +69,7 @@ export const createSharedStyles = (palette: AppPalette, isDark: boolean) =>
       flexWrap: 'wrap',
       marginBottom: spacing.sm,
     },
-    // Inspired by: https://reactnativecomponents.com/components/button
+    // Button reference: https://callstack.github.io/react-native-paper/docs/components/Button/
     primaryButton: {
       height: buttonHeights.lg,
       borderRadius: radius.md,

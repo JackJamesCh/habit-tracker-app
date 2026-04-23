@@ -2,8 +2,7 @@ import { eq } from 'drizzle-orm';
 import { db } from './client';
 import { settings } from './schema';
 
-// Gets the saved theme from the database
-// If nothing is saved yet, light mode is used by default
+// Theme is stored locally so preference survives app restarts without a backend.
 export async function getSavedTheme() {
   const result = await db.select().from(settings).where(eq(settings.key, 'theme'));
 
@@ -14,8 +13,7 @@ export async function getSavedTheme() {
   return result[0].value;
 }
 
-// Saves the chosen theme in the database
-// If a theme row already exists, it updates that row
+// Upsert style logic keeps one "theme" row instead of creating duplicates over time.
 export async function saveTheme(theme: 'light' | 'dark') {
   const existing = await db.select().from(settings).where(eq(settings.key, 'theme'));
 

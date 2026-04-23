@@ -34,8 +34,7 @@ type LogItem = {
 };
 
 export default function LogsScreen() {
-  // State stores habits, form input, database logs, and filter values
-  // The screen reloads every time the user opens the tab
+  // Keep form state, list data and filters together so this tab is easy to reason about.
   const [habitList, setHabitList] = useState<HabitItem[]>([]);
   const [selectedHabitId, setSelectedHabitId] = useState<number | null>(null);
   const [date, setDate] = useState('');
@@ -48,18 +47,23 @@ export default function LogsScreen() {
   const [searchText, setSearchText] = useState('');
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
+
+  // Theme tokens are pulled once so every row/card uses the same color set.
   const { isDark } = useAppTheme();
   const palette = getPalette(isDark);
   const sharedStyles = createSharedStyles(palette, isDark);
 
   const buttonTextColor = palette.text;
 
+  // Reload on focus so newly added logs from other flows show up right away.
+  // Reference: https://reactnavigation.org/docs/use-focus-effect
   useFocusEffect(
     useCallback(() => {
       loadData();
     }, [])
   );
 
+  // One loader keeps habits and logs in sync for both forms and filter chips.
   const loadData = async () => {
     const savedHabits = await db.select().from(habits);
     const savedLogs = await db.select().from(habitLogs);
@@ -109,7 +113,7 @@ export default function LogsScreen() {
     setEditingLogId(null);
   };
 
-  // Adds or updates a habit log and reloads list
+  // Same form is reused for add + edit to keep this screen compact.
   const saveLog = async () => {
     if (!selectedHabitId || !date.trim() || !value.trim()) return;
 
@@ -140,8 +144,7 @@ export default function LogsScreen() {
     await loadData();
   };
 
-  // Deletes one log from the database using its id
-  // This helps the user remove mistakes from the log list
+  // Delete then refresh so accidental entries disappear immediately in UI.
   const deleteLog = async (logId: number) => {
     await db.delete(habitLogs).where(eq(habitLogs.id, logId));
 
@@ -152,7 +155,7 @@ export default function LogsScreen() {
     await loadData();
   };
 
-  // Loads one log into the form for editing
+  // Prefilling makes quick corrections easier than retyping everything.
   const startEditingLog = (log: LogItem) => {
     setEditingLogId(log.id);
     setSelectedHabitId(log.habitId);
@@ -161,8 +164,8 @@ export default function LogsScreen() {
     setNotes(log.notes ?? '');
   };
 
-  // Filters logs by selected habit, search text, and date range
-  // Date filtering works best when dates are entered as YYYY-MM-DD
+  // Filtering is done client side because this list is small and needs instant feedback.
+  // Date range works best with ISO format (YYYY-MM-DD) which matches saved examples.
   const filteredLogs = logList.filter((log) => {
     const matchesHabit = filterHabitId ? log.habitId === filterHabitId : true;
 
@@ -194,138 +197,140 @@ export default function LogsScreen() {
           <View style={sharedStyles.screenContent}>
             <Text style={sharedStyles.title}>Habit Logs</Text>
 
-            {/* Inspired by: https://reactnativecomponents.com/components/card */}
+            {/* Keeping add/edit controls in one card keeps the top section predictable. */}
+            {/* Styling idea inspired by: https://reactnativeelements.com/docs/components/card */}
             <View style={sharedStyles.card}>
               <Text style={sharedStyles.fieldLabel}>Select Habit</Text>
               <View style={sharedStyles.rowWrap}>
-              {habitList.map((habit) => (
-                <TouchableOpacity
-                  key={habit.id}
-                  style={[
-                    sharedStyles.pillButton,
-                    selectedHabitId === habit.id && sharedStyles.pillButtonActive,
-                  ]}
-                  onPress={() => setSelectedHabitId(habit.id)}
-                >
-                  <Text
-                    style={
-                      selectedHabitId === habit.id
-                        ? sharedStyles.pillButtonTextActive
-                        : [sharedStyles.pillButtonText, { color: buttonTextColor }]
-                    }
+                {habitList.map((habit) => (
+                  <TouchableOpacity
+                    key={habit.id}
+                    style={[
+                      sharedStyles.pillButton,
+                      selectedHabitId === habit.id && sharedStyles.pillButtonActive,
+                    ]}
+                    onPress={() => setSelectedHabitId(habit.id)}
                   >
-                    {habit.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={
+                        selectedHabitId === habit.id
+                          ? sharedStyles.pillButtonTextActive
+                          : [sharedStyles.pillButtonText, { color: buttonTextColor }]
+                      }
+                    >
+                      {habit.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
 
-            <TextInput
-              style={sharedStyles.input}
-              placeholder="Enter date (e.g. 2026-04-21)"
-              placeholderTextColor={palette.textMuted}
-              value={date}
-              onChangeText={setDate}
-            />
+              <TextInput
+                style={sharedStyles.input}
+                placeholder="Enter date (e.g. 2026-04-21)"
+                placeholderTextColor={palette.textMuted}
+                value={date}
+                onChangeText={setDate}
+              />
 
-            <TextInput
-              style={sharedStyles.input}
-              placeholder="Enter number"
-              placeholderTextColor={palette.textMuted}
-              value={value}
-              onChangeText={setValue}
-              keyboardType="numeric"
-            />
+              <TextInput
+                style={sharedStyles.input}
+                placeholder="Enter number"
+                placeholderTextColor={palette.textMuted}
+                value={value}
+                onChangeText={setValue}
+                keyboardType="numeric"
+              />
 
-            <TextInput
-              style={sharedStyles.input}
-              placeholder="Optional notes"
-              placeholderTextColor={palette.textMuted}
-              value={notes}
-              onChangeText={setNotes}
-            />
+              <TextInput
+                style={sharedStyles.input}
+                placeholder="Optional notes"
+                placeholderTextColor={palette.textMuted}
+                value={notes}
+                onChangeText={setNotes}
+              />
 
-            {/* Inspired by: https://reactnativecomponents.com/components/button */}
-            <TouchableOpacity style={sharedStyles.primaryButton} onPress={saveLog}>
-              <Text style={sharedStyles.buttonTextPrimary}>
-                {editingLogId !== null ? 'Update Log' : 'Add Log'}
-              </Text>
-            </TouchableOpacity>
-
-            {editingLogId !== null ? (
-              <TouchableOpacity style={[sharedStyles.secondaryButton, styles.secondaryAction]} onPress={clearLogForm}>
-                <Text style={sharedStyles.buttonTextSecondary}>Cancel Edit</Text>
+              {/* Reference: https://callstack.github.io/react-native-paper/docs/components/Button/ */}
+              <TouchableOpacity style={sharedStyles.primaryButton} onPress={saveLog}>
+                <Text style={sharedStyles.buttonTextPrimary}>
+                  {editingLogId !== null ? 'Update Log' : 'Add Log'}
+                </Text>
               </TouchableOpacity>
-            ) : null}
+
+              {editingLogId !== null ? (
+                <TouchableOpacity style={[sharedStyles.secondaryButton, styles.secondaryAction]} onPress={clearLogForm}>
+                  <Text style={sharedStyles.buttonTextSecondary}>Cancel Edit</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
 
             <View style={sharedStyles.card}>
               <Text style={sharedStyles.sectionTitle}>Filter Logs</Text>
 
-            <TextInput
-              style={sharedStyles.input}
-              placeholder="Search by habit, date, or notes"
-              placeholderTextColor={palette.textMuted}
-              value={searchText}
-              onChangeText={setSearchText}
-            />
+              <TextInput
+                style={sharedStyles.input}
+                placeholder="Search by habit, date, or notes"
+                placeholderTextColor={palette.textMuted}
+                value={searchText}
+                onChangeText={setSearchText}
+              />
 
-            <TextInput
-              style={sharedStyles.input}
-              placeholder="Start date (e.g. 2026-04-01)"
-              placeholderTextColor={palette.textMuted}
-              value={startDateFilter}
-              onChangeText={setStartDateFilter}
-            />
+              <TextInput
+                style={sharedStyles.input}
+                placeholder="Start date (e.g. 2026-04-01)"
+                placeholderTextColor={palette.textMuted}
+                value={startDateFilter}
+                onChangeText={setStartDateFilter}
+              />
 
-            <TextInput
-              style={sharedStyles.input}
-              placeholder="End date (e.g. 2026-04-30)"
-              placeholderTextColor={palette.textMuted}
-              value={endDateFilter}
-              onChangeText={setEndDateFilter}
-            />
+              <TextInput
+                style={sharedStyles.input}
+                placeholder="End date (e.g. 2026-04-30)"
+                placeholderTextColor={palette.textMuted}
+                value={endDateFilter}
+                onChangeText={setEndDateFilter}
+              />
 
-            <View style={sharedStyles.rowWrap}>
-              <TouchableOpacity
-                style={[
-                  sharedStyles.pillButton,
-                  filterHabitId === null && sharedStyles.pillButtonActive,
-                ]}
-                onPress={() => setFilterHabitId(null)}
-              >
-                <Text
-                  style={
-                    filterHabitId === null
-                      ? sharedStyles.pillButtonTextActive
-                      : [sharedStyles.pillButtonText, { color: buttonTextColor }]
-                  }
-                >
-                  All
-                </Text>
-              </TouchableOpacity>
-
-              {habitList.map((habit) => (
+              {/* Quick habit chips make it easier to switch filters without typing. */}
+              <View style={sharedStyles.rowWrap}>
                 <TouchableOpacity
-                  key={habit.id}
                   style={[
                     sharedStyles.pillButton,
-                    filterHabitId === habit.id && sharedStyles.pillButtonActive,
+                    filterHabitId === null && sharedStyles.pillButtonActive,
                   ]}
-                  onPress={() => setFilterHabitId(habit.id)}
+                  onPress={() => setFilterHabitId(null)}
                 >
                   <Text
                     style={
-                      filterHabitId === habit.id
+                      filterHabitId === null
                         ? sharedStyles.pillButtonTextActive
                         : [sharedStyles.pillButtonText, { color: buttonTextColor }]
                     }
                   >
-                    {habit.name}
+                    All
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+
+                {habitList.map((habit) => (
+                  <TouchableOpacity
+                    key={habit.id}
+                    style={[
+                      sharedStyles.pillButton,
+                      filterHabitId === habit.id && sharedStyles.pillButtonActive,
+                    ]}
+                    onPress={() => setFilterHabitId(habit.id)}
+                  >
+                    <Text
+                      style={
+                        filterHabitId === habit.id
+                          ? sharedStyles.pillButtonTextActive
+                          : [sharedStyles.pillButtonText, { color: buttonTextColor }]
+                      }
+                    >
+                      {habit.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
             <Text style={sharedStyles.sectionTitle}>Recent Logs</Text>
@@ -334,36 +339,35 @@ export default function LogsScreen() {
         ListEmptyComponent={<Text style={[sharedStyles.emptyText, styles.emptyText]}>No logs found</Text>}
         renderItem={({ item }) => (
           <View style={styles.itemWrapper}>
-            {/* Inspired by: https://reactnativecomponents.com/components/list-item */}
+            {/* Row layout keeps details + actions close together for quick edits/deletes. */}
+            {/* Reference: https://callstack.github.io/react-native-paper/docs/components/List/ListItem/ */}
             <View style={sharedStyles.card}>
-            <Text style={[styles.cardTitle, { color: palette.text }]}>{item.habitName}</Text>
-            <Text style={[styles.cardText, { color: palette.textMuted }]}>
-              Date: {item.date}
-            </Text>
-            <Text style={[styles.cardText, { color: palette.textMuted }]}>
-              Value: {item.value}
-            </Text>
-            {item.notes ? (
+              <Text style={[styles.cardTitle, { color: palette.text }]}>{item.habitName}</Text>
               <Text style={[styles.cardText, { color: palette.textMuted }]}>
-                Notes: {item.notes}
+                Date: {item.date}
               </Text>
-            ) : null}
+              <Text style={[styles.cardText, { color: palette.textMuted }]}>
+                Value: {item.value}
+              </Text>
+              {item.notes ? (
+                <Text style={[styles.cardText, { color: palette.textMuted }]}>Notes: {item.notes}</Text>
+              ) : null}
 
-            <View style={sharedStyles.inlineActions}>
-              <TouchableOpacity
-                style={[sharedStyles.secondaryButton, styles.actionButton]}
-                onPress={() => startEditingLog(item)}
-              >
-                <Text style={sharedStyles.buttonTextSecondary}>Edit Log</Text>
-              </TouchableOpacity>
+              <View style={sharedStyles.inlineActions}>
+                <TouchableOpacity
+                  style={[sharedStyles.secondaryButton, styles.actionButton]}
+                  onPress={() => startEditingLog(item)}
+                >
+                  <Text style={sharedStyles.buttonTextSecondary}>Edit Log</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[sharedStyles.dangerButton, styles.actionButton]}
-                onPress={() => deleteLog(item.id)}
-              >
-                <Text style={sharedStyles.buttonTextDanger}>Delete Log</Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  style={[sharedStyles.dangerButton, styles.actionButton]}
+                  onPress={() => deleteLog(item.id)}
+                >
+                  <Text style={sharedStyles.buttonTextDanger}>Delete Log</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         )}

@@ -35,25 +35,29 @@ type TargetItem = {
 };
 
 export default function TargetsScreen() {
-  // State stores habits from the database and target form input
-  // Targets reload whenever the user opens this tab
+  // Keep habit choices, form input and saved targets together so this tab stays easy to follow.
   const [habitList, setHabitList] = useState<HabitItem[]>([]);
   const [selectedHabitId, setSelectedHabitId] = useState<number | null>(null);
   const [period, setPeriod] = useState<'weekly' | 'monthly'>('weekly');
   const [targetValue, setTargetValue] = useState('');
   const [targetList, setTargetList] = useState<TargetItem[]>([]);
+
+  // Theme values are grouped once so cards, chips and text stay visually consistent.
   const { isDark } = useAppTheme();
   const palette = getPalette(isDark);
   const sharedStyles = createSharedStyles(palette, isDark);
 
   const buttonTextColor = palette.text;
 
+  // Refresh on focus so progress updates from new logs are visible as soon as this tab opens.
+  // Reference: https://reactnavigation.org/docs/use-focus-effect
   useFocusEffect(
     useCallback(() => {
       loadData();
     }, [])
   );
 
+  // We load habits, targets and logs together because target progress depends on all three.
   const loadData = async () => {
     const savedHabits = await db.select().from(habits);
     const savedTargets = await db.select().from(targets);
@@ -80,7 +84,7 @@ export default function TargetsScreen() {
 
     const today = new Date();
 
-    // Get start and end of current week (Monday to Sunday)
+    // Weekly and monthly date windows are calculated here so each target can reuse them.
     const currentDay = today.getDay();
     const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
 
@@ -92,7 +96,6 @@ export default function TargetsScreen() {
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
-    // Get start and end of current month
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     startOfMonth.setHours(0, 0, 0, 0);
 
@@ -146,8 +149,7 @@ export default function TargetsScreen() {
     setTargetList(formattedTargets);
   };
 
-  // Adds a new target using the helper function in db/targets.ts
-  // This keeps the database insert logic outside the screen file
+  // Creating targets through the DB helper keeps insert details out of the UI screen.
   const addTarget = async () => {
     if (!selectedHabitId || !targetValue.trim()) return;
 
@@ -162,8 +164,7 @@ export default function TargetsScreen() {
     await loadData();
   };
 
-  // Deletes a target from the database and reloads the list
-  // This lets the user remove old or incorrect goals
+  // Delete + reload keeps the saved target list honest after changes.
   const deleteTarget = async (targetId: number) => {
     await db.delete(targets).where(eq(targets.id, targetId));
     await loadData();
@@ -178,7 +179,8 @@ export default function TargetsScreen() {
           <View style={sharedStyles.screenContent}>
             <Text style={sharedStyles.title}>Targets</Text>
 
-            {/* Inspired by: https://reactnativecomponents.com/components/card */}
+            {/* Form controls live in one card so creating new goals is quick and predictable. */}
+            {/* Styling idea inspired by: https://reactnativeelements.com/docs/components/card */}
             <View style={sharedStyles.card}>
               <Text style={sharedStyles.fieldLabel}>Select Habit</Text>
               <View style={sharedStyles.rowWrap}>
@@ -252,7 +254,7 @@ export default function TargetsScreen() {
                 keyboardType="numeric"
               />
 
-              {/* Inspired by: https://reactnativecomponents.com/components/button */}
+              {/* Reference: https://callstack.github.io/react-native-paper/docs/components/Button/ */}
               <TouchableOpacity style={sharedStyles.primaryButton} onPress={addTarget}>
                 <Text style={sharedStyles.buttonTextPrimary}>Add Target</Text>
               </TouchableOpacity>

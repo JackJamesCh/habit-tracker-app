@@ -33,28 +33,30 @@ type CategoryItem = {
 };
 
 export default function HabitsScreen() {
-  // State stores form input and data loaded from SQLite
-  // The app now reads and writes habits from the real database
+  // Form/edit state and list data live together here so this tab stays self contained.
   const [habitName, setHabitName] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [habitType, setHabitType] = useState<'completed' | 'count-based'>('completed');
   const [editingHabitId, setEditingHabitId] = useState<number | null>(null);
   const [habitList, setHabitList] = useState<HabitItem[]>([]);
   const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
+
+  // Theme is read once per render so every style picks the same palette values.
   const { isDark } = useAppTheme();
   const palette = getPalette(isDark);
   const sharedStyles = createSharedStyles(palette, isDark);
 
   const buttonTextColor = palette.text;
 
-  // Loads categories and habits when the screen opens
-  // This keeps the UI in sync with the data saved in SQLite
+  // Reload when tab regains focus so edits made elsewhere show up immediately.
+  // Reference: https://reactnavigation.org/docs/use-focus-effect
   useFocusEffect(
     useCallback(() => {
       loadData();
     }, [])
   );
 
+  // Pull both tables here so habit rows can also show category name/color.
   const loadData = async () => {
     const savedCategories = await db.select().from(categories);
     const savedHabits = await db.select().from(habits);
@@ -90,7 +92,7 @@ export default function HabitsScreen() {
     setEditingHabitId(null);
   };
 
-  // Adds or updates a habit, then reloads the list
+  // Edit mode reuses the same form as create mode to avoid a second screen.
   const saveHabit = async () => {
     if (!habitName.trim() || selectedCategoryId === null) return;
 
@@ -115,8 +117,7 @@ export default function HabitsScreen() {
     await loadData();
   };
 
-  // Deletes one habit from the database using its id
-  // After delete, the screen reloads the updated habit list
+  // Delete and then refresh so the list always reflects SQLite right away.
   const deleteHabit = async (habitId: number) => {
     await db.delete(habits).where(eq(habits.id, habitId));
 
@@ -127,7 +128,7 @@ export default function HabitsScreen() {
     await loadData();
   };
 
-  // Loads a habit into the current form for editing
+  // Prefill current values so updates feel like editing and not starting over.
   const startEditingHabit = (habit: HabitItem) => {
     setEditingHabitId(habit.id);
     setHabitName(habit.name);
@@ -144,7 +145,8 @@ export default function HabitsScreen() {
           <View style={sharedStyles.screenContent}>
             <Text style={sharedStyles.title}>Habit Tracker</Text>
 
-            {/* Inspired by: https://reactnativecomponents.com/components/card */}
+            {/* Form controls are grouped in one card to keep create/edit flow simple. */}
+            {/* Styling idea inspired by: https://reactnativeelements.com/docs/components/card */}
             <View style={sharedStyles.card}>
               <TextInput
                 style={sharedStyles.input}
@@ -180,44 +182,44 @@ export default function HabitsScreen() {
 
               <Text style={sharedStyles.fieldLabel}>Type</Text>
               <View style={sharedStyles.rowWrap}>
-        <TouchableOpacity
-          style={[
-            sharedStyles.pillButton,
-            habitType === 'completed' && sharedStyles.pillButtonActive,
-          ]}
-          onPress={() => setHabitType('completed')}
-        >
-          <Text
-            style={
-              habitType === 'completed'
-                ? sharedStyles.pillButtonTextActive
-                : [sharedStyles.pillButtonText, { color: buttonTextColor }]
-            }
-          >
-            Completed
-          </Text>
-        </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    sharedStyles.pillButton,
+                    habitType === 'completed' && sharedStyles.pillButtonActive,
+                  ]}
+                  onPress={() => setHabitType('completed')}
+                >
+                  <Text
+                    style={
+                      habitType === 'completed'
+                        ? sharedStyles.pillButtonTextActive
+                        : [sharedStyles.pillButtonText, { color: buttonTextColor }]
+                    }
+                  >
+                    Completed
+                  </Text>
+                </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            sharedStyles.pillButton,
-            habitType === 'count-based' && sharedStyles.pillButtonActive,
-          ]}
-          onPress={() => setHabitType('count-based')}
-        >
-          <Text
-            style={
-              habitType === 'count-based'
-                ? sharedStyles.pillButtonTextActive
-                : [sharedStyles.pillButtonText, { color: buttonTextColor }]
-            }
-          >
-            Count-based
-          </Text>
-        </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    sharedStyles.pillButton,
+                    habitType === 'count-based' && sharedStyles.pillButtonActive,
+                  ]}
+                  onPress={() => setHabitType('count-based')}
+                >
+                  <Text
+                    style={
+                      habitType === 'count-based'
+                        ? sharedStyles.pillButtonTextActive
+                        : [sharedStyles.pillButtonText, { color: buttonTextColor }]
+                    }
+                  >
+                    Count-based
+                  </Text>
+                </TouchableOpacity>
               </View>
 
-              {/* Inspired by: https://reactnativecomponents.com/components/button */}
+              {/* Inspired by: https://reactnative.dev/docs/touchableopacity */}
               <TouchableOpacity style={sharedStyles.primaryButton} onPress={saveHabit}>
                 <Text style={sharedStyles.buttonTextPrimary}>
                   {editingHabitId !== null ? 'Update Habit' : 'Add Habit'}

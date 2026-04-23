@@ -1,8 +1,7 @@
 import { db } from './client';
 import { categories, habits } from './schema';
 
-// This function adds starting sample data into the database
-// It checks first so the same data is not inserted again and again
+// Seed gives first time users sample rows so tabs are not empty on first launch.
 export async function seedDatabase() {
   const existingCategories = await db.select().from(categories);
 
@@ -22,6 +21,7 @@ export async function seedDatabase() {
   const learningCategory = savedCategories.find((category) => category.name === 'Learning');
   const healthCategory = savedCategories.find((category) => category.name === 'Health');
 
+  // Guard here avoids inserting habits with missing category ids.
   if (!fitnessCategory || !learningCategory || !healthCategory) {
     return;
   }

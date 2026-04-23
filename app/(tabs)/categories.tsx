@@ -22,12 +22,13 @@ type CategoryItem = {
 };
 
 export default function CategoriesScreen() {
-  // State stores the category form and list of saved categories
-  // If a category is selected, the form switches into edit mode
+  // Keep form + list state together so adding and editing categories stays in one flow.
   const [categoryName, setCategoryName] = useState('');
   const [selectedColor, setSelectedColor] = useState('#3b82f6');
   const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+
+  // Theme values are kept central so color previews still look right in dark mode.
   const { isDark } = useAppTheme();
   const palette = getPalette(isDark);
   const sharedStyles = createSharedStyles(palette, isDark);
@@ -36,19 +37,21 @@ export default function CategoriesScreen() {
 
   const colorOptions = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
 
+  // Reload when tab is focused so any DB changes are reflected right away.
+  // Reference: https://reactnavigation.org/docs/use-focus-effect
   useFocusEffect(
     useCallback(() => {
       loadCategories();
     }, [])
   );
 
+  // Local DB read keeps this list fast and available offline.
   const loadCategories = async () => {
     const savedCategories = await db.select().from(categories);
     setCategoryList(savedCategories);
   };
 
-  // Adds a new category when not editing, or updates the selected one
-  // This keeps the screen simple and avoids needing a separate edit page
+  // Reusing one form for add/edit avoids extra navigation and keeps this screen simple.
   const saveCategory = async () => {
     if (!categoryName.trim()) return;
 
@@ -71,18 +74,21 @@ export default function CategoriesScreen() {
     await loadCategories();
   };
 
+  // Fill form from the selected row so users can make quick updates.
   const startEditing = (category: CategoryItem) => {
     setEditingCategoryId(category.id);
     setCategoryName(category.name);
     setSelectedColor(category.color);
   };
 
+  // Reset returns the screen to add mode after save/cancel/delete.
   const resetForm = () => {
     setEditingCategoryId(null);
     setCategoryName('');
     setSelectedColor('#3b82f6');
   };
 
+  // Delete then reload ensures stale category rows don't hang around in UI.
   const deleteCategory = async (categoryId: number) => {
     await db.delete(categories).where(eq(categories.id, categoryId));
     await loadCategories();
@@ -102,7 +108,8 @@ export default function CategoriesScreen() {
             <Text style={sharedStyles.title}>Categories</Text>
             <Text style={sharedStyles.subtitle}>Create and manage habit categories</Text>
 
-            {/* Inspired by: https://reactnativecomponents.com/components/card */}
+            {/* Inputs and color options are grouped so create/edit feels like one task. */}
+            {/* Styling idea inspired by: https://reactnativeelements.com/docs/components/card */}
             <View style={sharedStyles.card}>
               <TextInput
                 style={sharedStyles.input}
@@ -130,7 +137,7 @@ export default function CategoriesScreen() {
                 ))}
               </View>
 
-              {/* Inspired by: https://reactnativecomponents.com/components/button */}
+              {/* Reference: https://callstack.github.io/react-native-paper/docs/components/Button/ */}
               <TouchableOpacity style={sharedStyles.primaryButton} onPress={saveCategory}>
                 <Text style={sharedStyles.buttonTextPrimary}>
                   {editingCategoryId !== null ? 'Update Category' : 'Add Category'}

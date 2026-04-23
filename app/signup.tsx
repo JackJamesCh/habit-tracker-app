@@ -15,16 +15,19 @@ import { getPalette, radius, spacing } from '../constants/design-system';
 import { createSharedStyles } from '../components/ui/shared-styles';
 
 export default function SignupScreen() {
-  // State stores sign up values and simple validation feedback
-  // After sign up, the user is logged in automatically and sent into the app
+  // Keep the signup form state local so validation and reset behavior stay straightforward.
+  // Reference: https://react.dev/reference/react/useState
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Pulling colors from the theme context keeps dark mode behavior consistent everywhere.
   const { isDark } = useAppTheme();
   const palette = getPalette(isDark);
   const sharedStyles = createSharedStyles(palette, isDark);
 
+  // Signup reuses the same auth flow as login, then navigates into tabs right away.
   const handleSignup = async () => {
     try {
       setErrorMessage('');
@@ -56,7 +59,8 @@ export default function SignupScreen() {
         <Text style={sharedStyles.title}>Sign Up</Text>
         <Text style={sharedStyles.subtitle}>Create an account to use your habit tracker</Text>
 
-        {/* Inspired by: https://reactnativecomponents.com/components/card */}
+        {/* Keeping inputs in one card gives the screen a cleaner flow on mobile. */}
+        {/* Styling idea inspired by: https://reactnativeelements.com/docs/components/card */}
         <View style={sharedStyles.card}>
           <TextInput
             style={sharedStyles.input}
@@ -88,7 +92,8 @@ export default function SignupScreen() {
             <Text style={[styles.errorText, { color: palette.danger }]}>{errorMessage}</Text>
           ) : null}
 
-          {/* Inspired by: https://reactnativecomponents.com/components/button */}
+          {/* Main CTA is separated from the link so the primary action stays clear. */}
+          {/* Reference: https://callstack.github.io/react-native-paper/docs/components/Button/ */}
           <TouchableOpacity style={sharedStyles.primaryButton} onPress={handleSignup}>
             <Text style={sharedStyles.buttonTextPrimary}>Create Account</Text>
           </TouchableOpacity>
@@ -106,7 +111,7 @@ const styles = StyleSheet.create({
   centeredContent: {
     justifyContent: 'center',
   },
-  // Inspired by: https://reactnativecomponents.com/components/button
+  // Inspired by: https://reactnative.dev/docs/touchableopacity
   linkButton: {
     marginTop: spacing.md,
     borderRadius: radius.md,
